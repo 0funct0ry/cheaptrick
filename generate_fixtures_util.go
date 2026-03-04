@@ -47,10 +47,11 @@ var predefinedToolCallPrompts = []string{
 }
 
 func generatePromptPayload(promptText string) []byte {
+	// The minimal payload structure often seen in testing curls:
+	// {"contents":[{"parts":[{"text":"prompt text"}]}]}
 	payload := map[string]interface{}{
 		"contents": []map[string]interface{}{
 			{
-				"role": "user",
 				"parts": []map[string]interface{}{
 					{
 						"text": promptText,
@@ -75,12 +76,12 @@ func generateFixturesFromPrompts(outputDir string) {
 	}
 	defer f.Close()
 
-	f.WriteString("# cheaptrick Fixtures Manifest\n\n")
-	f.WriteString("This file maps predefined user prompts to their corresponding auto-reply fixture files. Send the exact payload structure to get the fixture matched automatically.\n\n")
+	_, _ = f.WriteString("# cheaptrick Fixtures Manifest\n\n")
+	_, _ = f.WriteString("This file maps predefined user prompts to their corresponding auto-reply fixture files. Send the exact payload structure to get the fixture matched automatically.\n\n")
 
-	f.WriteString("## Text Responses\n\n")
-	f.WriteString("| Prompt | Fixture File |\n")
-	f.WriteString("|---|---|\n")
+	_, _ = f.WriteString("## Text Responses\n\n")
+	_, _ = f.WriteString("| Prompt | Fixture File |\n")
+	_, _ = f.WriteString("|---|---|\n")
 
 	for _, prompt := range predefinedTextPrompts {
 		payload := generatePromptPayload(prompt)
@@ -90,13 +91,13 @@ func generateFixturesFromPrompts(outputDir string) {
 		if err := SaveFixture(outputDir, hashStr, getTemplateText()); err != nil {
 			log.Printf("Failed to save text fixture %s: %v", hashStr, err)
 		} else {
-			f.WriteString(fmt.Sprintf("| `%s` | `%s.json` |\n", prompt, hashStr))
+			_, _ = f.WriteString(fmt.Sprintf("| `%s` | `%s.json` |\n", prompt, hashStr))
 		}
 	}
 
-	f.WriteString("\n## Tool Call Responses\n\n")
-	f.WriteString("| Prompt | Fixture File |\n")
-	f.WriteString("|---|---|\n")
+	_, _ = f.WriteString("\n## Tool Call Responses\n\n")
+	_, _ = f.WriteString("| Prompt | Fixture File |\n")
+	_, _ = f.WriteString("|---|---|\n")
 
 	for _, prompt := range predefinedToolCallPrompts {
 		payload := generatePromptPayload(prompt)
@@ -106,7 +107,7 @@ func generateFixturesFromPrompts(outputDir string) {
 		if err := SaveFixture(outputDir, hashStr, getTemplateFunctionCall(PendingRequest{})); err != nil {
 			log.Printf("Failed to save tool call fixture %s: %v", hashStr, err)
 		} else {
-			f.WriteString(fmt.Sprintf("| `%s` | `%s.json` |\n", prompt, hashStr))
+			_, _ = f.WriteString(fmt.Sprintf("| `%s` | `%s.json` |\n", prompt, hashStr))
 		}
 	}
 
