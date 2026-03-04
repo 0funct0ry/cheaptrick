@@ -19,17 +19,25 @@ Ensure you have Go 1.22+ installed, then simply clone the repository and build:
 ```bash
 git clone <repository_url>
 cd cheaptrick
-go build .
+make build
+```
+
+This will create a binary in the `bin/` directory.
+
+Alternatively, you can install it globally to your `$GOPATH/bin`:
+
+```bash
+make install
 ```
 
 ## Usage & Verification
 
 1. **Start the Mock Server**
-   Open a new terminal and build/run the server:
+   Open a new terminal and run the server using `make`:
    ```bash
-   go run . --fixtures=./test_fixtures --log=dev.log
+   make run
    ```
-   *(To use HTTPS, append `--tls-cert=cert.pem --tls-key=key.pem`)*
+   *This automatically builds the project and runs it with a default fixtures directory and log file. To use HTTPS, run the binary directly and append `--tls-cert=cert.pem --tls-key=key.pem`)*
 
 2. **Send a Test Request**
    Open a secondary terminal and fire a test `curl` request:
