@@ -78,7 +78,7 @@ func startHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 				eventCh <- fmt.Sprintf("%s auto-replied from fixture %s", reqID, hashStr[:8])
 				logRequestResponse(logFile, reqID, timestamp, string(body), fixture, true)
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(fixture))
+				_, _ = w.Write([]byte(fixture))
 				return
 			}
 		}
@@ -110,7 +110,7 @@ func startHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 			logRequestResponse(logFile, reqID, timestamp, string(body), respBody, false)
 			eventCh <- fmt.Sprintf("%s response sent", reqID)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(respBody))
+			_, _ = w.Write([]byte(respBody))
 		case err := <-req.ErrorCh:
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		case <-time.After(5 * time.Minute):
@@ -164,5 +164,5 @@ func logRequestResponse(logFile, reqID string, timestamp time.Time, req, resp st
 	}
 
 	b, _ := json.Marshal(entry)
-	f.Write(append(b, '\n'))
+	_, _ = f.Write(append(b, '\n'))
 }
