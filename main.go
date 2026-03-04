@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -61,32 +59,9 @@ func main() {
 	var outputDir string
 	fixturesCmd := &cobra.Command{
 		Use:   "fixtures",
-		Short: "Generate 20 text fixtures and 10 tool call fixtures",
+		Short: "Generate 30 predefined text and tool call fixtures with a MANIFEST.md",
 		Run: func(cmd *cobra.Command, args []string) {
-			for i := 0; i < 20; i++ {
-				b := make([]byte, 16)
-				if _, err := rand.Read(b); err != nil {
-					log.Fatalf("Failed to generate random bytes: %v", err)
-				}
-				hash := hex.EncodeToString(b)
-				if err := SaveFixture(outputDir, hash, getTemplateText()); err != nil {
-					log.Printf("Failed to save text fixture %s: %v", hash, err)
-				} else {
-					fmt.Printf("Generated text fixture: %s.json\n", hash)
-				}
-			}
-			for i := 0; i < 10; i++ {
-				b := make([]byte, 16)
-				if _, err := rand.Read(b); err != nil {
-					log.Fatalf("Failed to generate random bytes: %v", err)
-				}
-				hash := hex.EncodeToString(b)
-				if err := SaveFixture(outputDir, hash, getTemplateFunctionCall(PendingRequest{})); err != nil {
-					log.Printf("Failed to save tool call fixture %s: %v", hash, err)
-				} else {
-					fmt.Printf("Generated tool call fixture: %s.json\n", hash)
-				}
-			}
+			generateFixturesFromPrompts(outputDir)
 		},
 	}
 	fixturesCmd.Flags().StringVarP(&outputDir, "output-dir", "o", "fixtures", "Directory to output fixtures")
