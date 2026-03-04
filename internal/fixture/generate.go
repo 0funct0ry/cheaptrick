@@ -1,4 +1,4 @@
-package main
+package fixture
 
 import (
 	"crypto/sha256"
@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-var predefinedTextPrompts = []string{
+var PredefinedTextPrompts = []string{
 	"Hello, how are you?",
 	"What is the meaning of life?",
 	"Tell me a joke.",
@@ -33,7 +33,7 @@ var predefinedTextPrompts = []string{
 	"Give me a recipe for vegan lasagna.",
 }
 
-var predefinedToolCallPrompts = []string{
+var PredefinedToolCallPrompts = []string{
 	"Get the current weather in New York.",
 	"Calculate 25 * 48.",
 	"Set an alarm for 7 AM tomorrow.",
@@ -46,7 +46,7 @@ var predefinedToolCallPrompts = []string{
 	"Convert 100 US dollars to Euros.",
 }
 
-func generatePromptPayload(promptText string) []byte {
+func GeneratePromptPayload(promptText string) []byte {
 	// The minimal payload structure often seen in testing curls:
 	// {"contents":[{"parts":[{"text":"prompt text"}]}]}
 	payload := map[string]interface{}{
@@ -64,7 +64,7 @@ func generatePromptPayload(promptText string) []byte {
 	return b
 }
 
-func generateFixturesFromPrompts(outputDir string) {
+func GenerateFromPrompts(outputDir string) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
@@ -83,12 +83,12 @@ func generateFixturesFromPrompts(outputDir string) {
 	_, _ = f.WriteString("| Prompt | Fixture File |\n")
 	_, _ = f.WriteString("|---|---|\n")
 
-	for _, prompt := range predefinedTextPrompts {
-		payload := generatePromptPayload(prompt)
+	for _, prompt := range PredefinedTextPrompts {
+		payload := GeneratePromptPayload(prompt)
 		h := sha256.Sum256(payload)
 		hashStr := hex.EncodeToString(h[:])
 
-		if err := SaveFixture(outputDir, hashStr, getTemplateText()); err != nil {
+		if err := SaveFixture(outputDir, hashStr, TemplateText()); err != nil {
 			log.Printf("Failed to save text fixture %s: %v", hashStr, err)
 		} else {
 			_, _ = f.WriteString(fmt.Sprintf("| `%s` | `%s.json` |\n", prompt, hashStr))
@@ -99,12 +99,12 @@ func generateFixturesFromPrompts(outputDir string) {
 	_, _ = f.WriteString("| Prompt | Fixture File |\n")
 	_, _ = f.WriteString("|---|---|\n")
 
-	for _, prompt := range predefinedToolCallPrompts {
-		payload := generatePromptPayload(prompt)
+	for _, prompt := range PredefinedToolCallPrompts {
+		payload := GeneratePromptPayload(prompt)
 		h := sha256.Sum256(payload)
 		hashStr := hex.EncodeToString(h[:])
 
-		if err := SaveFixture(outputDir, hashStr, getTemplateFunctionCall(PendingRequest{})); err != nil {
+		if err := SaveFixture(outputDir, hashStr, TemplateFunctionCall(map[string]interface{}{})); err != nil {
 			log.Printf("Failed to save tool call fixture %s: %v", hashStr, err)
 		} else {
 			_, _ = f.WriteString(fmt.Sprintf("| `%s` | `%s.json` |\n", prompt, hashStr))

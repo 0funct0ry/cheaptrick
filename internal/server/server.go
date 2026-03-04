@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"crypto/sha256"
@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"cheaptrick/internal/fixture"
 )
 
 var (
@@ -37,7 +39,7 @@ type PendingRequest struct {
 	ErrorCh    chan error
 }
 
-func startHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh chan<- PendingRequest, eventCh chan<- string) {
+func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh chan<- PendingRequest, eventCh chan<- string) {
 	mux := http.NewServeMux()
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -73,12 +75,12 @@ func startHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 		timestamp := time.Now()
 
 		if fixturesDir != "" {
-			fixture, ok := GetFixture(fixturesDir, hashStr)
+			fixtureContent, ok := fixture.GetFixture(fixturesDir, hashStr)
 			if ok {
 				eventCh <- fmt.Sprintf("%s auto-replied from fixture %s", reqID, hashStr[:8])
-				logRequestResponse(logFile, reqID, timestamp, string(body), fixture, true)
+				LogRequestResponse(logFile, reqID, timestamp, string(body), fixtureContent, true)
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(fixture))
+				_, _ = w.Write([]byte(fixtureContent))
 				return
 			}
 		}
@@ -107,7 +109,7 @@ func startHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 
 		select {
 		case respBody := <-req.ResponseCh:
-			logRequestResponse(logFile, reqID, timestamp, string(body), respBody, false)
+			LogRequestResponse(logFile, reqID, timestamp, string(body), respBody, false)
 			eventCh <- fmt.Sprintf("%s response sent", reqID)
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(respBody))
@@ -139,7 +141,7 @@ func startHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 	}
 }
 
-func logRequestResponse(logFile, reqID string, timestamp time.Time, req, resp string, auto bool) {
+func LogRequestResponse(logFile, reqID string, timestamp time.Time, req, resp string, auto bool) {
 	if logFile == "" {
 		return
 	}

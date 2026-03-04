@@ -32,14 +32,26 @@ make install
 
 ## Usage & Verification
 
-1. **Start the Mock Server**
-   Open a new terminal and run the server using `make`:
-   ```bash
-   make run
-   ```
-   *This automatically builds the project and runs it with a default fixtures directory and log file. To use HTTPS, run the binary directly and append `--tls-cert=cert.pem --tls-key=key.pem`)*
+The application now provides two main subcommands: `start` and `fixtures`.
 
-2. **Send a Test Request**
+### `cheaptrick start`
+
+Starts the HTTP server and opens the Bubble Tea TUI.
+
+```bash
+# Basic usage
+./bin/cheaptrick start
+
+# With specific port and fixture directory
+./bin/cheaptrick start --port 9090 --fixtures ./my_fixtures
+
+# With HTTPS enabled
+./bin/cheaptrick start --tls-cert cert.pem --tls-key key.pem
+```
+
+#### Verification & TUI flow:
+
+1. **Send a Test Request**
    Open a secondary terminal and fire a test `curl` request:
    ```bash
    curl -X POST http://localhost:8080/v1beta/models/gemini-2.0-flash:generateContent \
@@ -47,19 +59,31 @@ make install
    -d '{"contents":[{"parts":[{"text":"Hello Gemini TUI!"}]}]}'
    ```
 
-3. **Provide a Custom Response via TUI**
+2. **Provide a Custom Response via TUI**
    - When the request arrives, your `curl` command will hang while waiting for your server to respond. In the TUI window, you'll see a `[PENDING]` request item.
    - Hit `Enter` to focus the Response Composer in the TUI.
    - Press `F1` to insert a ready-to-use template, or write any valid JSON response manually.
    - Press `Ctrl+S` to send the response.
    - Check your secondary terminal — the `curl` operation should finish and print out the JSON you entered.
 
-4. **Test the Auto-Fixture Replay Feature**
+3. **Test the Auto-Fixture Replay Feature**
    - Resend the exact same `curl` request you sent earlier.
    - Go to the Response Composer again.
    - Press `Ctrl+F` to save the active response as a fixture. The notification bar will display: **"Saved fixture [HASH]"**.
    - Send the `curl` request one more time.
    - The TUI notification bar should rapidly update stating **"[req-id] auto-replied from fixture [HASH]"** and `curl` will receive a response immediately without you typing anything!
+
+### `cheaptrick fixtures`
+
+Generates 30 predefined JSON fixture files and a `MANIFEST.md` file for common text and tool-call prompts.
+
+```bash
+# Generate fixtures in the default "fixtures" directory
+./bin/cheaptrick fixtures
+
+# Generate fixtures in a specific directory
+./bin/cheaptrick fixtures --output-dir ./test_assets
+```
 
 ## Keybindings
 

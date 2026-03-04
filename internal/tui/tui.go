@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"encoding/json"
@@ -10,6 +10,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"cheaptrick/internal/fixture"
+	"cheaptrick/internal/server"
 )
 
 const (
@@ -28,7 +31,7 @@ var (
 )
 
 type tuiRequest struct {
-	PendingRequest
+	server.PendingRequest
 	Answered bool
 }
 
@@ -62,7 +65,7 @@ func (t tuiRequest) Description() string {
 func (t tuiRequest) FilterValue() string { return t.ID + " " + t.Model }
 
 type model struct {
-	reqCh       <-chan PendingRequest
+	reqCh       <-chan server.PendingRequest
 	eventCh     <-chan string
 	fixturesDir string
 
@@ -76,7 +79,7 @@ type model struct {
 
 type eventMsg string
 
-func initialModel(reqCh <-chan PendingRequest, eventCh <-chan string, fixturesDir string) model {
+func InitialModel(reqCh <-chan server.PendingRequest, eventCh <-chan string, fixturesDir string) model {
 	l := list.New(nil, list.NewDefaultDelegate(), 0, 0)
 	l.Title = "Gemini Mock Requests"
 	l.SetShowStatusBar(false)
@@ -99,7 +102,7 @@ func initialModel(reqCh <-chan PendingRequest, eventCh <-chan string, fixturesDi
 	}
 }
 
-func waitForRequest(sub <-chan PendingRequest) tea.Cmd {
+func waitForRequest(sub <-chan server.PendingRequest) tea.Cmd {
 	return func() tea.Msg { return <-sub }
 }
 
@@ -142,7 +145,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notification = string(msg)
 		cmds = append(cmds, waitForEvent(m.eventCh))
 
-	case PendingRequest:
+	case server.PendingRequest:
 		req := tuiRequest{PendingRequest: msg, Answered: false}
 		m.requests = append(m.requests, req)
 
@@ -192,7 +195,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateComposer
 				m.textarea.Focus()
 				if len(strings.TrimSpace(m.textarea.Value())) == 0 {
-					m.textarea.SetValue(getTemplateText())
+					m.textarea.SetValue(fixture.TemplateText())
 				}
 			}
 			m.list, cmd = m.list.Update(msg)
@@ -217,13 +220,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateList
 				m.textarea.Blur()
 			case "f1":
-				m.textarea.SetValue(getTemplateText())
+				m.textarea.SetValue(fixture.TemplateText())
 			case "f2":
-				m.textarea.SetValue(getTemplateFunctionCall(m.requests[m.list.Index()].PendingRequest))
+				m.textarea.SetValue(fixture.TemplateFunctionCall(m.requests[m.list.Index()].ParsedBody))
 			case "f3":
-				m.textarea.SetValue(getTemplate429())
+				m.textarea.SetValue(fixture.Template429())
 			case "f4":
-				m.textarea.SetValue(getTemplate500())
+				m.textarea.SetValue(fixture.Template500())
 			case "ctrl+s":
 				idx := m.list.Index()
 				req := m.requests[idx]
@@ -244,7 +247,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				idx := m.list.Index()
 				req := m.requests[idx]
 				if m.fixturesDir != "" {
-					err := SaveFixture(m.fixturesDir, req.Hash, m.textarea.Value())
+					err := fixture.SaveFixture(m.fixturesDir, req.Hash, m.textarea.Value())
 					if err == nil {
 						m.notification = "Saved fixture " + req.Hash[:8]
 					} else {
