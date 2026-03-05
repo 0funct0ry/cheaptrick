@@ -4,10 +4,20 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"google.golang.org/genai"
+)
+
+var (
+	shellHost    string
+	shellPort    int
+	shellAPIKey  string
+	shellModel   string
+	shellHistory string
 )
 
 var shellCmd = &cobra.Command{
@@ -16,12 +26,14 @@ var shellCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 
+		baseURL := fmt.Sprintf("http://%s:%d", shellHost, shellPort)
+
 		// Initialize the client configured to hit the mock server
 		client, err := genai.NewClient(ctx, &genai.ClientConfig{
 			HTTPOptions: genai.HTTPOptions{
-				BaseURL: "http://localhost:8080",
+				BaseURL: baseURL,
 			},
-			APIKey: "mock-key", // Any API key works since cheaptrick skips validation
+			APIKey: shellAPIKey,
 		})
 		if err != nil {
 			log.Fatalf("Failed to create genai client: %v", err)
@@ -29,7 +41,7 @@ var shellCmd = &cobra.Command{
 
 		rl, err := readline.NewEx(&readline.Config{
 			Prompt:          "\033[36mPrompt>\033[0m ",
-			HistoryFile:     "/tmp/go-genai-client-history.tmp",
+			HistoryFile:     shellHistory,
 			InterruptPrompt: "^C",
 			EOFPrompt:       "exit",
 		})
@@ -38,7 +50,8 @@ var shellCmd = &cobra.Command{
 		}
 		defer rl.Close()
 
-		fmt.Println("Connected to local Gemini Mock Server (http://localhost:8080)")
+		fmt.Printf("Connected to local Gemini Mock Server (%s)\n", baseURL)
+		fmt.Printf("Using model: %s\n", shellModel)
 		fmt.Println("Enter your prompts below. Press Ctrl+D (EOF) to exit.")
 		fmt.Println("---------------------------------------------------------")
 
@@ -52,7 +65,7 @@ var shellCmd = &cobra.Command{
 			}
 
 			// Generate content
-			resp, err := client.Models.GenerateContent(ctx, "gemini-2.0-flash", genai.Text(line), nil)
+			resp, err := client.Models.GenerateContent(ctx, shellModel, genai.Text(line), nil)
 			if err != nil {
 				fmt.Printf("\033[31mError generating content: %v\033[0m\n", err)
 				continue
@@ -70,5 +83,13 @@ var shellCmd = &cobra.Command{
 }
 
 func init() {
+	defaultHistory := filepath.Join(os.TempDir(), "go-genai-client-history.tmp")
+
+	shellCmd.Flags().StringVarP(&shellHost, "host", "H", "localhost", "Host address of the mock server")
+	shellCmd.Flags().IntVarP(&shellPort, "port", "p", 8080, "Port of the mock server")
+	shellCmd.Flags().StringVar(&shellAPIKey, "api-key", "mock-key", "API key to use (cheaptrick skips validation)")
+	shellCmd.Flags().StringVarP(&shellModel, "model", "m", "gemini-2.0-flash", "Gemini model to use in requests")
+	shellCmd.Flags().StringVar(&shellHistory, "history-file", defaultHistory, "Path to the readline history file")
+
 	rootCmd.AddCommand(shellCmd)
 }

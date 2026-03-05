@@ -101,18 +101,22 @@ cheaptrick start --tls-cert cert.pem --tls-key key.pem
 Starts an interactive shell connecting to the mock server. Use this to quickly test your local mock server's fixtures without needing to construct `curl` payloads manually. It inherently uses the official `google.golang.org/genai` library pointing to the local mock server.
 
 ```bash
-# Start the interactive shell
+# Start the interactive shell (defaults to localhost:8080)
 cheaptrick shell
 
-Connected to local Gemini Mock Server (http://localhost:8080)
-Enter your prompts below. Press Ctrl+D (EOF) to exit.
----------------------------------------------------------
-Prompt> Hello!
-# Triggers the mock server. The server can either auto-respond using an existing fixture, 
-# or it will remain pending in the TUI allowing you to construct a custom response!
-Mock Server Response:
-...
+# Configure the target server and model
+cheaptrick shell --host 127.0.0.1 --port 9090 --model gemini-1.5-pro
+
+# Use a specific history file and API key
+cheaptrick shell --history-file ./my_history.txt --api-key custom-key
 ```
+
+**Available Flags:**
+- `-H, --host string`: Host address of the mock server (default "localhost")
+- `-p, --port int`: Port of the mock server (default 8080)
+- `--api-key string`: API key to use (cheaptrick skips validation) (default "mock-key")
+- `-m, --model string`: Gemini model to use in requests (default "gemini-2.0-flash")
+- `--history-file string`: Path to the readline history file (defaults to OS temp directory)
 
 ### `cheaptrick fixtures`
 
