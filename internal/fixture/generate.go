@@ -3,7 +3,6 @@ package fixture
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -46,24 +45,6 @@ var PredefinedToolCallPrompts = []string{
 	"Convert 100 US dollars to Euros.",
 }
 
-func GeneratePromptPayload(promptText string) []byte {
-	// The minimal payload structure often seen in testing curls:
-	// {"contents":[{"parts":[{"text":"prompt text"}]}]}
-	payload := map[string]interface{}{
-		"contents": []map[string]interface{}{
-			{
-				"parts": []map[string]interface{}{
-					{
-						"text": promptText,
-					},
-				},
-			},
-		},
-	}
-	b, _ := json.Marshal(payload)
-	return b
-}
-
 func GenerateFromPrompts(outputDir string) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
@@ -84,8 +65,7 @@ func GenerateFromPrompts(outputDir string) {
 	_, _ = f.WriteString("|---|---|\n")
 
 	for _, prompt := range PredefinedTextPrompts {
-		payload := GeneratePromptPayload(prompt)
-		h := sha256.Sum256(payload)
+		h := sha256.Sum256([]byte(prompt))
 		hashStr := hex.EncodeToString(h[:])
 
 		if err := SaveFixture(outputDir, hashStr, TemplateText()); err != nil {
@@ -100,8 +80,7 @@ func GenerateFromPrompts(outputDir string) {
 	_, _ = f.WriteString("|---|---|\n")
 
 	for _, prompt := range PredefinedToolCallPrompts {
-		payload := GeneratePromptPayload(prompt)
-		h := sha256.Sum256(payload)
+		h := sha256.Sum256([]byte(prompt))
 		hashStr := hex.EncodeToString(h[:])
 
 		if err := SaveFixture(outputDir, hashStr, TemplateFunctionCall(map[string]interface{}{})); err != nil {

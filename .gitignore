@@ -1,3 +1,4 @@
 PR*.md
+.jsonl
 fixtures/
 bin/
