@@ -2,10 +2,7 @@ module go-genai-client
 
 go 1.24.2
 
-require (
-	github.com/chzyer/readline v1.5.1
-	google.golang.org/genai v1.49.0
-)
+require google.golang.org/genai v1.49.0
 
 require (
 	cloud.google.com/go v0.116.0 // indirect

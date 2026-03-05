@@ -1,4 +1,4 @@
 PR*.md
-.jsonl
+*.jsonl
 fixtures/
 bin/
