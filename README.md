@@ -35,7 +35,7 @@ Once you're happy with a response, save it as a **fixture**. The next time the s
 
 | | Feature | Description |
 |---|---|---|
-| 🖥️ | **Terminal UI** | Full Bubble Tea interface — request list, detail viewer, and response composer in one screen |
+| 🖥️ | **Terminal UI & Web UI** | Full Bubble Tea TUI *and* a modern React Web UI — request list, detail viewer, and response composer built right in |
 | 📝 | **Response Templates** | One-key skeletons for text replies, function calls, rate-limit errors, and server errors |
 | 💾 | **Fixture Replay** | Save a response once, auto-reply forever. Build a fixture library as you develop |
 | 🐚 | **Interactive Shell** | Built-in REPL that talks to your mock server using the official `google.golang.org/genai` client |
@@ -74,7 +74,7 @@ cheaptrick --help
 
 ## 📖 Usage
 
-Cheaptrick has three subcommands: **`start`**, **`shell`**, and **`fixtures`**.
+Cheaptrick has four main subcommands: **`start`**, **`web`**, **`shell`**, and **`fixtures`**.
 
 ### `start` — Launch the mock server + TUI
 
@@ -103,6 +103,20 @@ curl -s -X POST \
 The curl hangs. In the TUI, a **\[PENDING\]** request appears. Select it, press **Enter** to open the response composer, hit **F1** for a text-response template, edit the JSON to your liking, and press **Ctrl+S**. The curl returns your crafted response immediately.
 
 Want to replay that same response automatically next time? Press **Ctrl+F** to save it as a fixture. Future identical requests get an instant **\[AUTO\]** reply.
+
+### `web` — Launch the mock server + Web UI
+
+Prefer the browser over the terminal? The `web` command starts the mock API and serves a beautiful React frontend embedded right in the binary. No Node.js required!
+
+```bash
+# Starts API on :8080 and Web UI on :3000
+cheaptrick web
+
+# Custom ports and auto-open browser
+cheaptrick web --port 9090 --web-port 4000 --open
+```
+
+The Web UI comes with everything from the TUI: a request list, JSON syntax highlighting, response composing, templates (F1-F4), and fixture saving (Ctrl+S / Ctrl+F).
 
 ### `shell` — Interactive REPL for quick testing
 
@@ -239,11 +253,11 @@ GEMINI_API_KEY=sk-real-key cargo run
 ┌─────────────┐         ┌──────────────────────────────────────────┐
 │  Your App   │  HTTP   │              Cheaptrick                  │
 │  (any SDK)  │────────▶│                                          │
-│             │         │  ┌────────┐    channel    ┌───────────┐  │
-│             │◀────────│  │ Server │──────────────▶│  TUI App  │  │
-│             │         │  │  :8080 │◀──────────────│(Bubble Tea│  │
-└─────────────┘         │  └────────┘  response ch  │           │  │
-                        │       │                   └───────────┘  │
+│             │         │  ┌────────┐  event hook   ┌───────────┐  │
+│             │◀────────│  │ Server │──────────────▶│ TUI / Web │  │
+│             │         │  │  :8080 │◀──────────────│   UI      │  │
+└─────────────┘         │  └────────┘  response     └───────────┘  │
+                        │       │                                  │
                         │       ▼                                  │
                         │  ┌────────┐                              │
                         │  │Fixtures│  (auto-reply if match found) │
@@ -251,7 +265,7 @@ GEMINI_API_KEY=sk-real-key cargo run
                         └──────────────────────────────────────────┘
 ```
 
-The HTTP server runs in a goroutine. When a request arrives, it checks the fixture store first. On a cache miss, it sends the request over a Go channel to the Bubble Tea event loop and blocks until you compose a response. Everything is logged to a JSONL file.
+The HTTP server runs in a goroutine. When a request arrives, it checks the fixture store first. On a cache miss, it notifies the UI observers (Bubble Tea TUI or React Web UI via WebSocket) and blocks until you compose a response. Everything is recorded via an internal shared Request Store.
 
 ---
 
@@ -284,10 +298,3 @@ Please open an issue first for large changes so we can discuss the approach.
 
 Distributed under the MIT License. See [LICENSE.md](LICENSE.md) for details.
 
----
-
-<div align="center">
-
-Built for developers who'd rather spend tokens in production, not in `vim`.
-
-</div>

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"cheaptrick/internal/server"
+	"cheaptrick/internal/store"
 	"cheaptrick/internal/tui"
 )
 
@@ -20,6 +21,24 @@ var (
 	tlsKey      string
 )
 
+type tuiObserver struct {
+	reqCh       chan *store.Request
+	eventCh     chan string
+	respondedCh chan string
+}
+
+func (o *tuiObserver) OnNewRequest(req *store.Request) {
+	o.reqCh <- req
+}
+func (o *tuiObserver) OnRequestResponded(id string, via string) {
+	o.respondedCh <- id
+}
+func (o *tuiObserver) OnFixtureSaved(hash string, reqID string) {
+}
+func (o *tuiObserver) OnEvent(msg string) {
+	o.eventCh <- msg
+}
+
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the TUI and HTTP server",
@@ -30,13 +49,21 @@ var startCmd = &cobra.Command{
 			}
 		}
 
-		reqCh := make(chan server.PendingRequest, 100)
-		eventCh := make(chan string, 100) // For log messages in notification bar
+		reqCh := make(chan *store.Request, 100)
+		eventCh := make(chan string, 100)
+		respondedCh := make(chan string, 100)
 
-		go server.StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile, reqCh, eventCh)
+		reqStore := store.New()
+		reqStore.Register(&tuiObserver{
+			reqCh:       reqCh,
+			eventCh:     eventCh,
+			respondedCh: respondedCh,
+		})
+
+		go server.StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile, reqStore)
 
 		p := tea.NewProgram(
-			tui.InitialModel(reqCh, eventCh, fixturesDir),
+			tui.InitialModel(reqStore, reqCh, eventCh, respondedCh, fixturesDir),
 			tea.WithAltScreen(),
 			tea.WithMouseCellMotion(),
 		)

@@ -4,3 +4,4 @@ fixtures/
 bin/
 # Added by goreleaser init:
 dist/
+W*I.md

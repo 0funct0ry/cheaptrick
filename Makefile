@@ -1,4 +1,4 @@
-.PHONY: all build clean test lint vet fmt run install help
+.PHONY: all build clean test lint vet fmt run install help frontend-deps frontend-build dev-web
 
 # Binary name
 BINARY_NAME=cheaptrick
@@ -12,8 +12,18 @@ FIXTURES_DIR=test_fixtures
 
 all: clean build lint test
 
+# Install frontend dependencies
+frontend-deps: ## Install React frontend dependencies
+	@echo "==> Installing frontend deps..."
+	@cd internal/web/frontend && npm install
+
+# Build frontend for embedding
+frontend-build: frontend-deps ## Build the React frontend for embedding
+	@echo "==> Building frontend..."
+	@cd internal/web/frontend && npm run build
+
 ## Build:
-build: ## Build the cheaptrick binary
+build: frontend-build ## Build the cheaptrick binary
 	@echo "==> Building ${BINARY_NAME}..."
 	@mkdir -p ${BIN_DIR}
 	@go build ${LDFLAGS} -o ${BIN_DIR}/${BINARY_NAME} .
@@ -25,6 +35,12 @@ install: ## Install the binary to GOPATH/bin
 	@echo "==> Done. Installed to $$GOPATH/bin"
 
 ## Development:
+dev-web: ## Dev mode: run Vite dev server + Go server concurrently
+	@echo "Starting Vite dev server..."
+	@cd internal/web/frontend && npm run dev &
+	@echo "Starting Go server (web mode, no embed)..."
+	@CHEAPTRICK_DEV=1 go run . web --web-port 3000
+
 run: build ## Run the server with default test settings
 	@echo "==> Running ${BINARY_NAME}..."
 	@./${BIN_DIR}/${BINARY_NAME} --fixtures=${FIXTURES_DIR} --log=mock_log.jsonl

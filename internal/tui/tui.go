@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"cheaptrick/internal/fixture"
-	"cheaptrick/internal/server"
+	"cheaptrick/internal/store"
 )
 
 const (
@@ -31,7 +31,7 @@ var (
 )
 
 type tuiRequest struct {
-	server.PendingRequest
+	*store.Request
 	Answered bool
 }
 
@@ -65,8 +65,10 @@ func (t tuiRequest) Description() string {
 func (t tuiRequest) FilterValue() string { return t.ID + " " + t.Model }
 
 type model struct {
-	reqCh       <-chan server.PendingRequest
+	reqCh       <-chan *store.Request
 	eventCh     <-chan string
+	respondedCh <-chan string
+	reqStore    *store.Store
 	fixturesDir string
 
 	requests     []tuiRequest
@@ -79,7 +81,7 @@ type model struct {
 
 type eventMsg string
 
-func InitialModel(reqCh <-chan server.PendingRequest, eventCh <-chan string, fixturesDir string) model {
+func InitialModel(reqStore *store.Store, reqCh <-chan *store.Request, eventCh <-chan string, respondedCh <-chan string, fixturesDir string) model {
 	l := list.New(nil, list.NewDefaultDelegate(), 0, 0)
 	l.Title = "Gemini Mock Requests"
 	l.SetShowStatusBar(false)
@@ -92,8 +94,10 @@ func InitialModel(reqCh <-chan server.PendingRequest, eventCh <-chan string, fix
 	ta.ShowLineNumbers = true
 
 	return model{
+		reqStore:    reqStore,
 		reqCh:       reqCh,
 		eventCh:     eventCh,
+		respondedCh: respondedCh,
 		fixturesDir: fixturesDir,
 		list:        l,
 		viewport:    vp,
@@ -102,7 +106,7 @@ func InitialModel(reqCh <-chan server.PendingRequest, eventCh <-chan string, fix
 	}
 }
 
-func waitForRequest(sub <-chan server.PendingRequest) tea.Cmd {
+func waitForRequest(sub <-chan *store.Request) tea.Cmd {
 	return func() tea.Msg { return <-sub }
 }
 
@@ -110,10 +114,17 @@ func waitForEvent(sub <-chan string) tea.Cmd {
 	return func() tea.Msg { return eventMsg(<-sub) }
 }
 
+type respondedMsg string
+
+func waitForResponded(sub <-chan string) tea.Cmd {
+	return func() tea.Msg { return respondedMsg(<-sub) }
+}
+
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		waitForRequest(m.reqCh),
 		waitForEvent(m.eventCh),
+		waitForResponded(m.respondedCh),
 		textarea.Blink,
 	)
 }
@@ -145,8 +156,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notification = string(msg)
 		cmds = append(cmds, waitForEvent(m.eventCh))
 
-	case server.PendingRequest:
-		req := tuiRequest{PendingRequest: msg, Answered: false}
+	case respondedMsg:
+		id := string(msg)
+		for i, r := range m.requests {
+			if r.ID == id {
+				m.requests[i].Answered = true
+			}
+		}
+		var items []list.Item
+		for _, r := range m.requests {
+			items = append(items, r)
+		}
+		m.list.SetItems(items)
+		cmds = append(cmds, waitForResponded(m.respondedCh))
+
+	case *store.Request:
+		req := tuiRequest{Request: msg, Answered: false}
 		m.requests = append(m.requests, req)
 
 		var items []list.Item
@@ -231,6 +256,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				idx := m.list.Index()
 				req := m.requests[idx]
 				if !req.Answered {
+					m.reqStore.MarkResponded(req.ID, "manual")
 					req.ResponseCh <- m.textarea.Value()
 					m.requests[idx].Answered = true
 

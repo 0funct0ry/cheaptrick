@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"cheaptrick/internal/fixture"
+	"cheaptrick/internal/store"
 )
 
 var (
@@ -28,18 +29,7 @@ func nextReqID() string {
 	return fmt.Sprintf("req-%02d", reqIDCounter)
 }
 
-type PendingRequest struct {
-	ID         string
-	Model      string
-	Timestamp  time.Time
-	RawBody    []byte
-	ParsedBody map[string]interface{}
-	Hash       string
-	ResponseCh chan string
-	ErrorCh    chan error
-}
-
-func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh chan<- PendingRequest, eventCh chan<- string) {
+func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqStore *store.Store) {
 	mux := http.NewServeMux()
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +83,7 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 		if fixturesDir != "" {
 			fixtureContent, ok := fixture.GetFixture(fixturesDir, hashStr)
 			if ok {
-				eventCh <- fmt.Sprintf("%s auto-replied from fixture %s", reqID, hashStr[:8])
+				reqStore.NotifyEvent(fmt.Sprintf("%s auto-replied from fixture %s", reqID, hashStr[:8]))
 				LogRequestResponse(logFile, reqID, timestamp, string(body), fixtureContent, true)
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(fixtureContent))
@@ -104,7 +94,7 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 		respCh := make(chan string, 1)
 		errCh := make(chan error, 1)
 
-		req := PendingRequest{
+		req := &store.Request{
 			ID:         reqID,
 			Model:      modelName,
 			Timestamp:  timestamp,
@@ -115,38 +105,33 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqCh c
 			ErrorCh:    errCh,
 		}
 
-		select {
-		case reqCh <- req:
-			eventCh <- fmt.Sprintf("%s received for model %s", reqID, modelName)
-		default:
-			http.Error(w, "TUI queue full", http.StatusServiceUnavailable)
-			return
-		}
+		reqStore.NotifyEvent(fmt.Sprintf("%s received for model %s", reqID, modelName))
+		reqStore.AddRequest(req)
 
 		select {
 		case respBody := <-req.ResponseCh:
 			LogRequestResponse(logFile, reqID, timestamp, string(body), respBody, false)
-			eventCh <- fmt.Sprintf("%s response sent", reqID)
+			reqStore.NotifyEvent(fmt.Sprintf("%s response sent", reqID))
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(respBody))
 		case err := <-req.ErrorCh:
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		case <-time.After(5 * time.Minute):
-			eventCh <- fmt.Sprintf("%s timed out", reqID)
+			reqStore.NotifyEvent(fmt.Sprintf("%s timed out", reqID))
 			http.Error(w, "Timeout waiting for TUI response", http.StatusGatewayTimeout)
 		case <-r.Context().Done():
-			eventCh <- fmt.Sprintf("%s client disconnected", reqID)
+			reqStore.NotifyEvent(fmt.Sprintf("%s client disconnected", reqID))
 		}
 	}
 
 	mux.HandleFunc("/v1beta/", handler)
 
 	addr := ":" + port
-	eventCh <- "Starting server on " + addr
+	reqStore.NotifyEvent("Starting server on " + addr)
 
 	var err error
 	if tlsCert != "" && tlsKey != "" {
-		eventCh <- "HTTPS Enabled"
+		reqStore.NotifyEvent("HTTPS Enabled")
 		err = http.ListenAndServeTLS(addr, tlsCert, tlsKey, mux)
 	} else {
 		err = http.ListenAndServe(addr, mux)
