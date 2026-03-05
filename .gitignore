@@ -2,3 +2,5 @@ PR*.md
 *.jsonl
 fixtures/
 bin/
+# Added by goreleaser init:
+dist/
