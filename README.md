@@ -134,6 +134,119 @@ cheaptrick fixtures --output-dir ./test_assets
 
 ---
 
+## 💻 Examples: Connecting via official SDKs
+
+By pointing the SDKs to your mock server instance, you can test your application flows without hitting real APIs.
+
+### Go (`google.golang.org/genai`)
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"google.golang.org/genai"
+)
+
+func main() {
+	ctx := context.Background()
+
+	// Initialize the client configured to hit the mock server
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		HTTPOptions: genai.HTTPOptions{
+			BaseURL: "http://localhost:8080",
+		},
+		APIKey: "mock-key", // Any API key works since cheaptrick skips validation
+	})
+	if err != nil {
+		log.Fatalf("Failed to create genai client: %v", err)
+	}
+
+	fmt.Println("Sending prompt to local Gemini Mock Server (http://localhost:8080)...")
+	prompt := "Tell me a short joke about a programmer."
+
+	resp, err := client.Models.GenerateContent(ctx, "gemini-2.0-flash", genai.Text(prompt), nil)
+	if err != nil {
+		log.Fatalf("Error generating content: %v", err)
+	}
+
+	fmt.Printf("Response: %s\n", resp.Text())
+}
+```
+
+### Python (`google-genai`)
+
+Note that for Python, you override the host via `http_options`. Since the official library points strictly to HTTPS, we prefix standard HTTP schemes manually.
+
+```python
+from google import genai
+from google.genai.types import HttpOptions
+
+# Initialize the client pointing to the mock server
+client = genai.Client(
+    api_key="mock-key", 
+    http_options=HttpOptions(
+        base_url="http://localhost:8080"
+    )
+)
+
+response = client.models.generate_content(
+    model='gemini-2.0-flash',
+    contents='Tell me a short joke about a programmer.'
+)
+
+print(response.text)
+```
+
+### TypeScript (`@google/genai`)
+
+```typescript
+import { GoogleGenAI } from '@google/genai';
+
+// Initialize the client pointing to the mock server
+const ai = new GoogleGenAI({
+  apiKey: "mock-key",
+  baseURL: "http://localhost:8080"
+});
+
+async function main() {
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: 'Tell me a short joke about a programmer.',
+  });
+  console.log(response.text);
+}
+
+main();
+```
+
+### Rust (`rig-core`)
+
+Rig is a highly extensible Rust framework for building LLM apps. You can configure a custom Gemini client pointing to the mock server.
+
+```rust
+use rig::{completion::Prompt, providers::gemini::Client};
+
+#[tokio::main]
+async fn main() -> Result<(), anyhow::Error> {
+    // Initialize the rig Gemini client pointing to the local mock server
+    let client = Client::new("mock-key")
+        .with_url("http://localhost:8080/v1beta");
+
+    let agent = client.agent("gemini-2.0-flash").build();
+
+    let response = agent.prompt("Tell me a short joke about a programmer.").await?;
+    println!("Response: {}", response);
+
+    Ok(())
+}
+```
+
+---
+
 ## ⌨️ TUI Keybindings
 
 - **`Tab`**: Switch focus between panels (List vs Viewer vs Composer)
@@ -162,4 +275,4 @@ Contributions are what make the open source community such an amazing place to l
 
 ## 📝 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See `LICENSE.md` for more information.
