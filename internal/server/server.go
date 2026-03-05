@@ -35,9 +35,12 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqStor
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		pathParts := strings.Split(r.URL.Path, "/")
 		var modelName string
-		for _, p := range pathParts {
-			if strings.HasPrefix(p, "models/") {
-				modelName = strings.TrimPrefix(p, "models/")
+		for i, p := range pathParts {
+			if p == "models" && i+1 < len(pathParts) {
+				modelName = pathParts[i+1]
+				if idx := strings.Index(modelName, ":"); idx != -1 {
+					modelName = modelName[:idx]
+				}
 				break
 			}
 		}
