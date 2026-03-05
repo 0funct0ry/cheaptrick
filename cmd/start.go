@@ -35,6 +35,10 @@ func (o *tuiObserver) OnRequestResponded(id string, via string) {
 }
 func (o *tuiObserver) OnFixtureSaved(hash string, reqID string) {
 }
+func (o *tuiObserver) OnRequestDeleted(id string) {
+}
+func (o *tuiObserver) OnRequestsCleared() {
+}
 func (o *tuiObserver) OnEvent(msg string) {
 	o.eventCh <- msg
 }

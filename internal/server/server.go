@@ -83,20 +83,6 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqStor
 		reqID := nextReqID()
 		timestamp := time.Now()
 
-		if fixturesDir != "" {
-			fixtureContent, ok := fixture.GetFixture(fixturesDir, hashStr)
-			if ok {
-				reqStore.NotifyEvent(fmt.Sprintf("%s auto-replied from fixture %s", reqID, hashStr[:8]))
-				LogRequestResponse(logFile, reqID, timestamp, string(body), fixtureContent, true)
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(fixtureContent))
-				return
-			}
-		}
-
-		respCh := make(chan string, 1)
-		errCh := make(chan error, 1)
-
 		req := &store.Request{
 			ID:         reqID,
 			Model:      modelName,
@@ -104,8 +90,21 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqStor
 			RawBody:    body,
 			ParsedBody: parsed,
 			Hash:       hashStr,
-			ResponseCh: respCh,
-			ErrorCh:    errCh,
+			ResponseCh: make(chan string, 1),
+			ErrorCh:    make(chan error, 1),
+		}
+
+		if fixturesDir != "" {
+			fixtureContent, ok := fixture.GetFixture(fixturesDir, hashStr)
+			if ok {
+				reqStore.NotifyEvent(fmt.Sprintf("%s auto-replied from fixture %s", reqID, hashStr[:8]))
+				reqStore.AddRequest(req)
+				reqStore.MarkResponded(reqID, "fixture")
+				LogRequestResponse(logFile, reqID, timestamp, string(body), fixtureContent, true)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(fixtureContent))
+				return
+			}
 		}
 
 		reqStore.NotifyEvent(fmt.Sprintf("%s received for model %s", reqID, modelName))

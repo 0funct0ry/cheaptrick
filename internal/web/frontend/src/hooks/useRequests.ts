@@ -33,6 +33,10 @@ export function useRequests() {
             setRequests(prev => prev.map(req =>
                 req.id === event.request_id ? { ...req, fixture_hash: event.hash } : req
             ));
+        } else if (event.type === 'request_deleted') {
+            setRequests(prev => prev.filter(req => req.id !== event.id));
+        } else if (event.type === 'requests_cleared') {
+            setRequests(prev => prev.filter(req => req.status === 'pending'));
         }
     }, []);
 

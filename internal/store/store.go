@@ -6,23 +6,25 @@ import (
 )
 
 type Request struct {
-	ID         string                 `json:"id"`
-	Model      string                 `json:"model"`
-	Timestamp  time.Time              `json:"timestamp"`
-	RawBody    []byte                 `json:"-"`
-	ParsedBody map[string]interface{} `json:"body"`
-	Hash       string                 `json:"hash"`
-	ResponseCh chan string            `json:"-"`
-	ErrorCh    chan error             `json:"-"`
-	Status     string                 `json:"status"` // "pending", "responded", "auto"
-	Via        string                 `json:"via,omitempty"` // "manual", "fixture"
-	FixtureHash string                `json:"fixture_hash,omitempty"`
+	ID          string                 `json:"id"`
+	Model       string                 `json:"model"`
+	Timestamp   time.Time              `json:"timestamp"`
+	RawBody     []byte                 `json:"-"`
+	ParsedBody  map[string]interface{} `json:"body"`
+	Hash        string                 `json:"hash"`
+	ResponseCh  chan string            `json:"-"`
+	ErrorCh     chan error             `json:"-"`
+	Status      string                 `json:"status"`        // "pending", "responded", "auto"
+	Via         string                 `json:"via,omitempty"` // "manual", "fixture"
+	FixtureHash string                 `json:"fixture_hash,omitempty"`
 }
 
 type Observer interface {
 	OnNewRequest(req *Request)
 	OnRequestResponded(id string, via string)
 	OnFixtureSaved(hash string, reqID string)
+	OnRequestDeleted(id string)
+	OnRequestsCleared()
 	OnEvent(msg string)
 }
 
@@ -80,6 +82,56 @@ func (s *Store) NotifyFixtureSaved(hash string, reqID string) {
 	defer s.mu.RUnlock()
 	for _, o := range s.observers {
 		o.OnFixtureSaved(hash, reqID)
+	}
+}
+
+func (s *Store) RemoveRequest(id string) bool {
+	s.mu.Lock()
+	_, ok := s.reqMap[id]
+	if !ok {
+		s.mu.Unlock()
+		return false
+	}
+
+	delete(s.reqMap, id)
+
+	for i, r := range s.requests {
+		if r.ID == id {
+			s.requests = append(s.requests[:i], s.requests[i+1:]...)
+			break
+		}
+	}
+	s.mu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, o := range s.observers {
+		o.OnRequestDeleted(id)
+	}
+	return true
+}
+
+func (s *Store) ClearRespondedRequests() {
+	var deletedIDs []string
+	s.mu.Lock()
+	var newReqs []*Request
+	for _, req := range s.requests {
+		if req.Status == "responded" {
+			delete(s.reqMap, req.ID)
+			deletedIDs = append(deletedIDs, req.ID)
+		} else {
+			newReqs = append(newReqs, req)
+		}
+	}
+	s.requests = newReqs
+	s.mu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(deletedIDs) > 0 {
+		for _, o := range s.observers {
+			o.OnRequestsCleared()
+		}
 	}
 }
 

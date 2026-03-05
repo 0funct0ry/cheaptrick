@@ -251,3 +251,17 @@ func (h *apiHandler) deleteFixture(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
+
+func (h *apiHandler) deleteRequest(c *gin.Context) {
+	id := c.Param("id")
+	if h.reqStore.RemoveRequest(id) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{"error": "request not found"})
+	}
+}
+
+func (h *apiHandler) clearRequests(c *gin.Context) {
+	h.reqStore.ClearRespondedRequests()
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}

@@ -40,6 +40,8 @@ func NewRouter(reqStore *store.Store, fixtureDir string) *gin.Engine {
 		api.GET("/templates", h.listTemplates)
 		api.GET("/fixtures", h.listFixtures)
 		api.DELETE("/fixtures/:hash", h.deleteFixture)
+		api.DELETE("/requests/:id", h.deleteRequest)
+		api.DELETE("/requests", h.clearRequests)
 	}
 
 	// WebSocket

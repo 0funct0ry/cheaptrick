@@ -25,6 +25,20 @@ export const api = {
         return res.json();
     },
 
+    deleteRequest: async (id: string): Promise<void> => {
+        const res = await fetch(`${API_BASE}/requests/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to delete request');
+    },
+
+    clearRequests: async (): Promise<void> => {
+        const res = await fetch(`${API_BASE}/requests`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to clear requests');
+    },
+
     saveFixture: async (id: string, response: any): Promise<{ hash: string, path: string }> => {
         const res = await fetch(`${API_BASE}/requests/${id}/fixture`, {
             method: 'POST',

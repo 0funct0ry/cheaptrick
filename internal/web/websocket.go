@@ -176,6 +176,23 @@ func (h *Hub) OnFixtureSaved(hash string, reqID string) {
 	h.broadcast <- b
 }
 
+func (h *Hub) OnRequestDeleted(id string) {
+	payload := map[string]interface{}{
+		"type": "request_deleted",
+		"id":   id,
+	}
+	b, _ := json.Marshal(payload)
+	h.broadcast <- b
+}
+
+func (h *Hub) OnRequestsCleared() {
+	payload := map[string]interface{}{
+		"type": "requests_cleared",
+	}
+	b, _ := json.Marshal(payload)
+	h.broadcast <- b
+}
+
 func (h *Hub) OnEvent(msg string) {
 	// Not broadcasted to web ui
 }
