@@ -99,7 +99,7 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqStor
 			if ok {
 				reqStore.NotifyEvent(fmt.Sprintf("%s auto-replied from fixture %s", reqID, hashStr[:8]))
 				reqStore.AddRequest(req)
-				reqStore.MarkResponded(reqID, "fixture")
+				reqStore.MarkResponded(reqID, "fixture", fixtureContent)
 				LogRequestResponse(logFile, reqID, timestamp, string(body), fixtureContent, true)
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(fixtureContent))

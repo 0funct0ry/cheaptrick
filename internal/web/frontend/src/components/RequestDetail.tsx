@@ -95,6 +95,12 @@ export function RequestDetail({ req }: { req: RequestDetailType }) {
                 <CollapsibleSection title="Raw Body JSON" defaultOpen={false}>
                     <JsonViewer data={req.body} />
                 </CollapsibleSection>
+
+                {req.response && (
+                    <CollapsibleSection title="Sent Response" defaultOpen={true}>
+                        <JsonViewer data={req.response} />
+                    </CollapsibleSection>
+                )}
             </div>
         </div>
     );

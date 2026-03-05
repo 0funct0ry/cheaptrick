@@ -14,6 +14,7 @@ export interface RequestDetail extends RequestItem {
     system_instruction: string;
     contents: any[];
     generation_config: any;
+    response?: any;
 }
 
 export interface Template {

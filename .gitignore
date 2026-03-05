@@ -5,3 +5,4 @@ bin/
 # Added by goreleaser init:
 dist/
 W*I.md
+S*_T*.md

@@ -6,17 +6,18 @@ import (
 )
 
 type Request struct {
-	ID          string                 `json:"id"`
-	Model       string                 `json:"model"`
-	Timestamp   time.Time              `json:"timestamp"`
-	RawBody     []byte                 `json:"-"`
-	ParsedBody  map[string]interface{} `json:"body"`
-	Hash        string                 `json:"hash"`
-	ResponseCh  chan string            `json:"-"`
-	ErrorCh     chan error             `json:"-"`
-	Status      string                 `json:"status"`        // "pending", "responded", "auto"
-	Via         string                 `json:"via,omitempty"` // "manual", "fixture"
-	FixtureHash string                 `json:"fixture_hash,omitempty"`
+	ID              string                 `json:"id"`
+	Model           string                 `json:"model"`
+	Timestamp       time.Time              `json:"timestamp"`
+	RawBody         []byte                 `json:"-"`
+	ParsedBody      map[string]interface{} `json:"body"`
+	Hash            string                 `json:"hash"`
+	ResponseCh      chan string            `json:"-"`
+	ErrorCh         chan error             `json:"-"`
+	Status          string                 `json:"status"`        // "pending", "responded", "auto"
+	Via             string                 `json:"via,omitempty"` // "manual", "fixture"
+	FixtureHash     string                 `json:"fixture_hash,omitempty"`
+	ResponsePayload string                 `json:"response,omitempty"`
 }
 
 type Observer interface {
@@ -62,11 +63,12 @@ func (s *Store) AddRequest(req *Request) {
 	}
 }
 
-func (s *Store) MarkResponded(id string, via string) {
+func (s *Store) MarkResponded(id string, via string, response string) {
 	s.mu.Lock()
 	if req, ok := s.reqMap[id]; ok {
 		req.Status = "responded"
 		req.Via = via
+		req.ResponsePayload = response
 	}
 	s.mu.Unlock()
 

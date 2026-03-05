@@ -99,6 +99,13 @@ func (h *apiHandler) getRequest(c *gin.Context) {
 		}
 	}
 
+	var respPayload interface{}
+	if req.ResponsePayload != "" {
+		if err := json.Unmarshal([]byte(req.ResponsePayload), &respPayload); err != nil {
+			respPayload = req.ResponsePayload
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":                 req.ID,
 		"timestamp":          req.Timestamp,
@@ -110,6 +117,7 @@ func (h *apiHandler) getRequest(c *gin.Context) {
 		"contents":           req.ParsedBody["contents"],
 		"generation_config":  req.ParsedBody["generationConfig"],
 		"fixture_hash":       req.FixtureHash,
+		"response":           respPayload,
 	})
 }
 
@@ -135,7 +143,7 @@ func (h *apiHandler) respondToRequest(c *gin.Context) {
 		return
 	}
 
-	h.reqStore.MarkResponded(id, "manual")
+	h.reqStore.MarkResponded(id, "manual", string(respBytes))
 	req.ResponseCh <- string(respBytes)
 
 	c.JSON(http.StatusOK, gin.H{"ok": true, "id": id})

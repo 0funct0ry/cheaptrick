@@ -256,7 +256,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				idx := m.list.Index()
 				req := m.requests[idx]
 				if !req.Answered {
-					m.reqStore.MarkResponded(req.ID, "manual")
+					m.reqStore.MarkResponded(req.ID, "manual", m.textarea.Value())
 					req.ResponseCh <- m.textarea.Value()
 					m.requests[idx].Answered = true
 
