@@ -1,278 +1,293 @@
 <div align="center">
-  <h1>🎭 Cheaptrick</h1>
-  <p><strong>A locally-hosted, interactive Mock Server and TUI for the Google Gemini API</strong></p>
+
+# 🎭 Cheaptrick
+
+**A human-in-the-loop mock server for the Google Gemini API**
+
+[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
+[![Built with Bubble Tea](https://img.shields.io/badge/Built_with-Bubble_Tea-ff69b4?style=flat-square)](https://github.com/charmbracelet/bubbletea)
+
+Stop burning Gemini tokens while you're still writing `println!("here")`.
+
+Cheaptrick sits between your app and the Gemini API, letting you intercept every request and hand-craft every response — all from a slick terminal UI.
+
+[Getting Started](#-getting-started) · [Usage](#-usage) · [SDK Examples](#-connecting-your-app) · [Keybindings](#%EF%B8%8F-keybindings) · [Contributing](#-contributing)
+
 </div>
 
 ---
 
-**Cheaptrick** is a Terminal User Interface (TUI) application built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) that acts as a mock backend for Google Gemini v1beta APIs. It allows developers to intercept API calls, inspect them, and provide mocked JSON responses (or auto-reply from fixtures) during local development, saving time and API costs.
+## Why Cheaptrick?
 
-## ✨ Features
+Building an LLM-powered agent means hundreds of API round-trips during development. Most of them are throwaway calls while you're debugging parsing logic, testing tool-call flows, or iterating on prompts. That's money and rate-limit headroom you'll never get back.
 
-- **Intercept Requests**: Catches Gemini API requests sent to your local server.
-- **TUI Interface**: View pending requests and their full JSON payloads in an elegant terminal UI.
-- **Custom Responses**: Compose custom JSON responses dynamically and send them back to the client.
-- **Pre-built Templates**: Use shortcuts to quickly generate standard response skeletons (Text, Function Call, Error 429, Error 500).
-- **Auto-Fixtures**: Save responses as templates for specific requests. Future identical requests will be answered automatically.
-- **Interactive Shell**: A built-in REPL-like shell allows you to converse with the mock server manually to test your fixtures.
-- **HTTPS Support**: Spin up the mock server with TLS to mimic secure environments.
-- **Request Logging**: Save request-response pairs to a JSONL log file for debugging.
+Cheaptrick gives you a local Gemini-compatible endpoint where **you** decide what comes back. Pending requests appear in a terminal dashboard. You pick a template, tweak the JSON, and hit send. Your client code doesn't know the difference.
+
+Once you're happy with a response, save it as a **fixture**. The next time the same request arrives, Cheaptrick replies instantly — no human in the loop needed. Over time, you build a deterministic replay layer that doubles as your test suite.
+
+**In short:** develop fast, spend nothing, and ship with confidence.
 
 ---
 
-## 🚀 Installation
+## ✨ Highlights
 
-Ensure you have **Go 1.22+** installed on your system. 
+| | Feature | Description |
+|---|---|---|
+| 🖥️ | **Terminal UI** | Full Bubble Tea interface — request list, detail viewer, and response composer in one screen |
+| 📝 | **Response Templates** | One-key skeletons for text replies, function calls, rate-limit errors, and server errors |
+| 💾 | **Fixture Replay** | Save a response once, auto-reply forever. Build a fixture library as you develop |
+| 🐚 | **Interactive Shell** | Built-in REPL that talks to your mock server using the official `google.golang.org/genai` client |
+| 🔒 | **TLS Support** | Spin up HTTPS when your client requires it |
+| 📊 | **Request Logging** | Every request/response pair logged to JSONL for post-hoc debugging |
+| 🔌 | **Drop-in Compatible** | Works with every official Gemini SDK — Go, Python, TypeScript, Rust — just swap the base URL |
 
-### Option 1: Clone and Build (Recommended)
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Go 1.22** or later
+
+### Install
 
 ```bash
+# Clone and build
 git clone https://github.com/yourusername/cheaptrick.git
 cd cheaptrick
-
-# Build the binary into the bin/ directory
 make build
+
+# Binary lands in ./bin/cheaptrick
+./bin/cheaptrick --help
 ```
 
-Then you can run `./bin/cheaptrick` to start the application.
-
-### Option 2: Install via Go
-
-Install directly to your `$GOPATH/bin`:
+Or install directly into your `$GOPATH/bin`:
 
 ```bash
 make install
-# OR
-go install ./...
-```
-
-Verify the installation:
-
-```bash
 cheaptrick --help
 ```
 
 ---
 
-## 📖 Usage The App
+## 📖 Usage
 
-The application provides three main subcommands: `start`, `fixtures`, and `shell`.
+Cheaptrick has three subcommands: **`start`**, **`shell`**, and **`fixtures`**.
 
-### `cheaptrick start`
-
-Starts the HTTP server and opens the Bubble Tea TUI.
+### `start` — Launch the mock server + TUI
 
 ```bash
-# Basic usage (defaults to localhost:8080)
+# Defaults to localhost:8080
 cheaptrick start
 
-# With specific port and fixture directory
+# Custom port and fixture directory
 cheaptrick start --port 9090 --fixtures ./my_fixtures
 
-# With HTTPS enabled
+# With TLS
 cheaptrick start --tls-cert cert.pem --tls-key key.pem
 ```
 
-#### TUI Workflow:
+**The workflow in 60 seconds:**
 
-1. **Send a Test Request**
-   Open a secondary terminal and send a test `curl` request:
-   ```bash
-   curl -X POST http://localhost:8080/v1beta/models/gemini-2.0-flash:generateContent \
-   -H "Content-Type: application/json" \
-   -d '{"contents":[{"parts":[{"text":"Hello Gemini!"}]}]}'
-   ```
-
-2. **Provide a Custom Response via TUI**
-   - When the request arrives, your `curl` command will hang while waiting for your server to respond. In the TUI window, you'll see a `[PENDING]` request item.
-   - Hit `Enter` to focus the Response Composer in the TUI.
-   - Press `F1` to insert a ready-to-use template, or write any valid JSON response manually.
-   - Press `Ctrl+S` to send the response.
-   - The `curl` operation finishes and prints out the JSON you entered.
-
-3. **Auto-Fixture Replay Feature**
-   - Resend the exact same `curl` request.
-   - Focus the Request in the Request List.
-   - Press `Ctrl+F` to save the active response as a fixture. The notification bar will display: **"Saved fixture [HASH]"**.
-   - Send the `curl` request one more time. The TUI will state **"[req-id] auto-replied from fixture [HASH]"** and `curl` will receive a response immediately!
-
-### `cheaptrick shell`
-
-Starts an interactive shell connecting to the mock server. Use this to quickly test your local mock server's fixtures without needing to construct `curl` payloads manually. It inherently uses the official `google.golang.org/genai` library pointing to the local mock server.
+Open a second terminal and fire a request at the mock server:
 
 ```bash
-# Start the interactive shell (defaults to localhost:8080)
-cheaptrick shell
-
-# Configure the target server and model
-cheaptrick shell --host 127.0.0.1 --port 9090 --model gemini-1.5-pro
-
-# Use a specific history file and API key via environment variable
-GEMINI_API_KEY="custom-key" cheaptrick shell --history-file ./my_history.txt
+curl -s -X POST \
+  http://localhost:8080/v1beta/models/gemini-2.0-flash:generateContent \
+  -H "Content-Type: application/json" \
+  -d '{"contents":[{"parts":[{"text":"Hello Gemini!"}]}]}'
 ```
 
-**Available Flags:**
-- `-H, --host string`: Host address of the mock server (default "localhost")
-- `-p, --port int`: Port of the mock server (default 8080)
-- `-m, --model string`: Gemini model to use in requests (default "gemini-2.0-flash")
-- `--history-file string`: Path to the readline history file (defaults to OS temp directory)
+The curl hangs. In the TUI, a **\[PENDING\]** request appears. Select it, press **Enter** to open the response composer, hit **F1** for a text-response template, edit the JSON to your liking, and press **Ctrl+S**. The curl returns your crafted response immediately.
 
-**Environment Variables:**
-- `GEMINI_API_KEY`: API key to use (cheaptrick skips validation) (default "mock-key")
+Want to replay that same response automatically next time? Press **Ctrl+F** to save it as a fixture. Future identical requests get an instant **\[AUTO\]** reply.
 
-### `cheaptrick fixtures`
+### `shell` — Interactive REPL for quick testing
 
-Generates 30 predefined JSON fixture files and a `MANIFEST.md` file for common text and tool-call prompts. This provides you with an instant set of fixtures to test against, removing the need to build the initial mock state manually.
+Talk to your mock server directly without constructing curl payloads. The shell uses the official `google.golang.org/genai` client under the hood.
 
 ```bash
-# Generate fixtures in the default "fixtures" directory
-cheaptrick fixtures
+cheaptrick shell
+cheaptrick shell --host 127.0.0.1 --port 9090 --model gemini-1.5-pro
+```
 
-# Generate fixtures in a specific directory
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-H, --host` | `localhost` | Mock server host |
+| `-p, --port` | `8080` | Mock server port |
+| `-m, --model` | `gemini-2.0-flash` | Model name in requests |
+| `--history-file` | OS temp dir | Readline history path |
+
+Set `GEMINI_API_KEY` if your client requires one (Cheaptrick ignores it).
+
+### `fixtures` — Generate starter fixture files
+
+Bootstrap 30 predefined fixtures for common text and tool-call prompts, plus a `MANIFEST.md` index.
+
+```bash
+cheaptrick fixtures
 cheaptrick fixtures --output-dir ./test_assets
 ```
 
 ---
 
-## 💻 Examples: Connecting via official SDKs
+## 🔌 Connecting Your App
 
-By pointing the SDKs to your mock server instance, you can test your application flows without hitting real APIs.
+Point any official Gemini SDK at `http://localhost:8080` and use any string as the API key. Cheaptrick doesn't validate credentials.
 
-### Go (`google.golang.org/genai`)
+### Go
 
 ```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"log"
-
-	"google.golang.org/genai"
-)
-
-func main() {
-	ctx := context.Background()
-
-	// Initialize the client configured to hit the mock server
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		HTTPOptions: genai.HTTPOptions{
-			BaseURL: "http://localhost:8080",
-		},
-		APIKey: "mock-key", // Any API key works since cheaptrick skips validation
-	})
-	if err != nil {
-		log.Fatalf("Failed to create genai client: %v", err)
-	}
-
-	fmt.Println("Sending prompt to local Gemini Mock Server (http://localhost:8080)...")
-	prompt := "Tell me a short joke about a programmer."
-
-	resp, err := client.Models.GenerateContent(ctx, "gemini-2.0-flash", genai.Text(prompt), nil)
-	if err != nil {
-		log.Fatalf("Error generating content: %v", err)
-	}
-
-	fmt.Printf("Response: %s\n", resp.Text())
-}
+client, _ := genai.NewClient(ctx, &genai.ClientConfig{
+    HTTPOptions: genai.HTTPOptions{
+        BaseURL: "http://localhost:8080",
+    },
+    APIKey: "mock-key",
+})
 ```
 
-### Python (`google-genai`)
-
-Note that for Python, you override the host via `http_options`. Since the official library points strictly to HTTPS, we prefix standard HTTP schemes manually.
+### Python
 
 ```python
 from google import genai
 from google.genai.types import HttpOptions
 
-# Initialize the client pointing to the mock server
 client = genai.Client(
-    api_key="mock-key", 
-    http_options=HttpOptions(
-        base_url="http://localhost:8080"
-    )
+    api_key="mock-key",
+    http_options=HttpOptions(base_url="http://localhost:8080"),
 )
-
-response = client.models.generate_content(
-    model='gemini-2.0-flash',
-    contents='Tell me a short joke about a programmer.'
-)
-
-print(response.text)
 ```
 
-### TypeScript (`@google/genai`)
+### TypeScript
 
 ```typescript
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from "@google/genai";
 
-// Initialize the client pointing to the mock server
 const ai = new GoogleGenAI({
-  apiKey: "mock-key",
-  baseURL: "http://localhost:8080"
+    apiKey: "mock-key",
+    baseURL: "http://localhost:8080",
 });
-
-async function main() {
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
-    contents: 'Tell me a short joke about a programmer.',
-  });
-  console.log(response.text);
-}
-
-main();
 ```
 
-### Rust (`rig-core`)
-
-Rig is a highly extensible Rust framework for building LLM apps. You can configure a custom Gemini client pointing to the mock server.
+### Rust (rig)
 
 ```rust
-use rig::{completion::Prompt, providers::gemini::Client};
+use rig::providers::gemini;
 
-#[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
-    // Initialize the rig Gemini client pointing to the local mock server
-    let client = Client::new("mock-key")
-        .with_url("http://localhost:8080/v1beta");
+let client = gemini::Client::builder()
+    .api_key("mock-key")
+    .base_url("http://localhost:8080")
+    .build()
+    .expect("mock client");
 
-    let agent = client.agent("gemini-2.0-flash").build();
+let agent = client
+    .agent("gemini-2.0-flash")
+    .preamble("You are a helpful assistant.")
+    .build();
 
-    let response = agent.prompt("Tell me a short joke about a programmer.").await?;
-    println!("Response: {}", response);
+let response = agent.prompt("Hello!").await?;
+```
 
-    Ok(())
+**Tip:** Use an environment variable to toggle between mock and production:
+
+```rust
+fn gemini_client() -> gemini::Client {
+    match std::env::var("GEMINI_MOCK_URL").ok() {
+        Some(url) => gemini::Client::builder()
+            .api_key(std::env::var("GEMINI_API_KEY").unwrap_or("mock".into()))
+            .base_url(url)
+            .build()
+            .expect("mock client"),
+        None => gemini::Client::from_env(),
+    }
 }
+```
+
+```bash
+# Development
+GEMINI_MOCK_URL=http://localhost:8080 cargo run
+
+# Production
+GEMINI_API_KEY=sk-real-key cargo run
 ```
 
 ---
 
-## ⌨️ TUI Keybindings
+## ⌨️ Keybindings
 
-- **`Tab`**: Switch focus between panels (List vs Viewer vs Composer)
-- **`j`/`k` or `↑`/`↓`**: Navigate lists and scroll detail view
-- **`Enter`**: Open response composer for a pending request
-- **`F1`**: Insert Text response skeleton
-- **`F2`**: Insert FunctionCall response skeleton
-- **`F3`**: Insert Error 429 response skeleton
-- **`F4`**: Insert Error 500 response skeleton
-- **`Ctrl+S`**: Send composed response
-- **`Ctrl+F`**: Save current response as an auto-fixture
-- **`Esc`**: Exit compose mode or cancel
-- **`q`**: Quit application
+| Key | Action |
+|-----|--------|
+| `Tab` | Cycle focus between panels |
+| `j` / `k` or `↑` / `↓` | Navigate list, scroll detail view |
+| `Enter` | Open response composer for selected request |
+| `F1` | Insert text response template |
+| `F2` | Insert function call template |
+| `F3` | Insert `429 Too Many Requests` error |
+| `F4` | Insert `500 Internal Server Error` |
+| `Ctrl+S` | Send composed response |
+| `Ctrl+F` | Save response as auto-replay fixture |
+| `Esc` | Exit composer / cancel |
+| `q` | Quit (confirms if requests are pending) |
+
+---
+
+## 🏗️ How It Works
+
+```
+┌─────────────┐         ┌──────────────────────────────────────────┐
+│  Your App   │  HTTP   │              Cheaptrick                  │
+│  (any SDK)  │────────▶│                                          │
+│             │         │  ┌────────┐    channel    ┌───────────┐  │
+│             │◀────────│  │ Server │──────────────▶│  TUI App  │  │
+│             │         │  │  :8080 │◀──────────────│(Bubble Tea│  │
+└─────────────┘         │  └────────┘  response ch  │           │  │
+                        │       │                   └───────────┘  │
+                        │       ▼                                  │
+                        │  ┌────────┐                              │
+                        │  │Fixtures│  (auto-reply if match found) │
+                        │  └────────┘                              │
+                        └──────────────────────────────────────────┘
+```
+
+The HTTP server runs in a goroutine. When a request arrives, it checks the fixture store first. On a cache miss, it sends the request over a Go channel to the Bubble Tea event loop and blocks until you compose a response. Everything is logged to a JSONL file.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Streaming response support (`streamGenerateContent` with SSE chunking)
+- [ ] Fixture fuzzy matching (ignore timestamps, IDs)
+- [ ] Request diffing (highlight what changed between similar requests)
+- [ ] Multi-turn conversation threading in the TUI
+- [ ] Export fixtures as Go/Python/Rust test helpers
+- [ ] Plugin system for custom response logic
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are welcome and appreciated. Whether it's a bug fix, new feature, documentation improvement, or fixture template — all PRs are valued.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+Please open an issue first for large changes so we can discuss the approach.
 
-Distributed under the MIT License. See `LICENSE.md` for more information.
+---
+
+## 📄 License
+
+Distributed under the MIT License. See [LICENSE.md](LICENSE.md) for details.
+
+---
+
+<div align="center">
+
+Built for developers who'd rather spend tokens in production, not in `vim`.
+
+</div>
