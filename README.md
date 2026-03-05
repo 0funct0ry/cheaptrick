@@ -107,16 +107,18 @@ cheaptrick shell
 # Configure the target server and model
 cheaptrick shell --host 127.0.0.1 --port 9090 --model gemini-1.5-pro
 
-# Use a specific history file and API key
-cheaptrick shell --history-file ./my_history.txt --api-key custom-key
+# Use a specific history file and API key via environment variable
+GEMINI_API_KEY="custom-key" cheaptrick shell --history-file ./my_history.txt
 ```
 
 **Available Flags:**
 - `-H, --host string`: Host address of the mock server (default "localhost")
 - `-p, --port int`: Port of the mock server (default 8080)
-- `--api-key string`: API key to use (cheaptrick skips validation) (default "mock-key")
 - `-m, --model string`: Gemini model to use in requests (default "gemini-2.0-flash")
 - `--history-file string`: Path to the readline history file (defaults to OS temp directory)
+
+**Environment Variables:**
+- `GEMINI_API_KEY`: API key to use (cheaptrick skips validation) (default "mock-key")
 
 ### `cheaptrick fixtures`
 

@@ -15,7 +15,6 @@ import (
 var (
 	shellHost    string
 	shellPort    int
-	shellAPIKey  string
 	shellModel   string
 	shellHistory string
 )
@@ -28,12 +27,17 @@ var shellCmd = &cobra.Command{
 
 		baseURL := fmt.Sprintf("http://%s:%d", shellHost, shellPort)
 
+		apiKey := os.Getenv("GEMINI_API_KEY")
+		if apiKey == "" {
+			apiKey = "mock-key"
+		}
+
 		// Initialize the client configured to hit the mock server
 		client, err := genai.NewClient(ctx, &genai.ClientConfig{
 			HTTPOptions: genai.HTTPOptions{
 				BaseURL: baseURL,
 			},
-			APIKey: shellAPIKey,
+			APIKey: apiKey,
 		})
 		if err != nil {
 			log.Fatalf("Failed to create genai client: %v", err)
@@ -87,7 +91,6 @@ func init() {
 
 	shellCmd.Flags().StringVarP(&shellHost, "host", "H", "localhost", "Host address of the mock server")
 	shellCmd.Flags().IntVarP(&shellPort, "port", "p", 8080, "Port of the mock server")
-	shellCmd.Flags().StringVar(&shellAPIKey, "api-key", "mock-key", "API key to use (cheaptrick skips validation)")
 	shellCmd.Flags().StringVarP(&shellModel, "model", "m", "gemini-2.0-flash", "Gemini model to use in requests")
 	shellCmd.Flags().StringVar(&shellHistory, "history-file", defaultHistory, "Path to the readline history file")
 
