@@ -47,9 +47,25 @@ func NewREPL(cfg Config) (*REPL, error) {
 		return nil, fmt.Errorf("failed to create genai client: %w", err)
 	}
 
+	var completer = readline.NewPrefixCompleter(
+		readline.PcItem("/clear"),
+		readline.PcItem("/auto"),
+		readline.PcItem("/step"),
+		readline.PcItem("/history"),
+		readline.PcItem("/trace"),
+		readline.PcItem("/export"),
+		readline.PcItem("/fail"),
+		readline.PcItem("/timeout"),
+		readline.PcItem("/tools"),
+		readline.PcItem("/help"),
+		readline.PcItem("/quit"),
+		readline.PcItem("/exit"),
+	)
+
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          "\033[36mPrompt>\033[0m ",
 		HistoryFile:     cfg.HistoryPath,
+		AutoComplete:    completer,
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
 	})
