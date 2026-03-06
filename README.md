@@ -9,61 +9,69 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 [![Built with Bubble Tea](https://img.shields.io/badge/Built_with-Bubble_Tea-ff69b4?style=flat-square)](https://github.com/charmbracelet/bubbletea)
 
-Stop burning Gemini tokens while you're still writing `println!("here")`.
+Cheaptrick intercepts Google Gemini API requests, lets you craft responses
+by hand, and replays them from fixtures — so you can develop and debug
+LLM-powered agents locally without spending tokens.
 
-Cheaptrick sits between your app and the Gemini API, letting you intercept every request and hand-craft every response — all from a slick terminal UI.
-
-[Getting Started](#-getting-started) · [Usage](#-usage) · [SDK Examples](#-connecting-your-app) · [Keybindings](#%EF%B8%8F-keybindings) · [Contributing](#-contributing)
+[Getting Started](#getting-started) · [Usage](#usage) · [Tool-Call Debugging](#tool-call-debugging-with-the-shell) · [SDK Examples](#connecting-your-app) · [Keybindings](#keybindings) · [Contributing](#contributing)
 
 </div>
 
 ---
 
-## Why Cheaptrick?
+## The Problem
 
-Building an LLM-powered agent means hundreds of API round-trips during development. Most of them are throwaway calls while you're debugging parsing logic, testing tool-call flows, or iterating on prompts. That's money and rate-limit headroom you'll never get back.
+Developing an LLM agent means hundreds of API round-trips: testing parsing
+logic, iterating on tool-call schemas, handling edge cases in multi-turn
+flows. Each call costs tokens and hits rate limits, but the responses you
+need during development are often predictable.
 
-Cheaptrick gives you a local Gemini-compatible endpoint where **you** decide what comes back. Pending requests appear in a terminal dashboard. You pick a template, tweak the JSON, and hit send. Your client code doesn't know the difference.
+Cheaptrick replaces the Gemini API with a local endpoint where you control
+every response. Requests appear in a TUI or web dashboard. You compose a
+JSON response (or pick a template), send it, and your client receives it
+as if it came from Gemini. Save a response as a fixture, and identical
+future requests are replayed automatically.
 
-Once you're happy with a response, save it as a **fixture**. The next time the same request arrives, Cheaptrick replies instantly — no human in the loop needed. Over time, you build a deterministic replay layer that doubles as your test suite.
-
-**In short:** develop fast, spend nothing, and ship with confidence.
-
----
-
-## ✨ Highlights
-
-| | Feature | Description |
-|---|---|---|
-| 🖥️ | **Terminal UI & Web UI** | Full Bubble Tea TUI *and* a modern React Web UI — request list, detail viewer, and response composer built right in |
-| 📝 | **Response Templates** | One-key skeletons for text replies, function calls, rate-limit errors, and server errors |
-| 💾 | **Fixture Replay** | Save a response once, auto-reply forever. Build a fixture library as you develop |
-| 🐚 | **Interactive Shell** | Built-in REPL that talks to your mock server using the official `google.golang.org/genai` client |
-| 🔒 | **TLS Support** | Spin up HTTPS when your client requires it |
-| 📊 | **Request Logging** | Every request/response pair logged to JSONL for post-hoc debugging |
-| 🔌 | **Drop-in Compatible** | Works with every official Gemini SDK — Go, Python, TypeScript, Rust — just swap the base URL |
+The result: deterministic, reproducible agent development at zero API cost.
 
 ---
 
-## 🚀 Getting Started
+## Features
+
+- **TUI and Web UI** — Full Bubble Tea terminal interface or a React-based
+  web dashboard (embedded in the binary, no Node.js required). Both
+  provide request inspection, response composing, and fixture management.
+- **Response templates** — Pre-built skeletons for text responses, function
+  calls, 429 rate-limit errors, and 500 server errors.
+- **Fixture replay** — Save any response as a fixture keyed by request
+  hash. Matching requests are auto-replied without human intervention.
+- **Interactive shell** — A REPL backed by the official `google.golang.org/genai`
+  client that sends prompts to your mock server and handles tool-call
+  loops with canned response files.
+- **TLS support** — Serve over HTTPS when your client requires it.
+- **JSONL logging** — Every request/response pair is logged for post-hoc
+  analysis.
+- **Drop-in SDK compatibility** — Works with the official Gemini SDKs for
+  Go, Python, TypeScript, and Rust. Just change the base URL.
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- **Go 1.22** or later
+- Go 1.22 or later
 
-### Install
+### Build from source
 
 ```bash
-# Clone and build
 git clone https://github.com/yourusername/cheaptrick.git
 cd cheaptrick
 make build
-
-# Binary lands in ./bin/cheaptrick
 ./bin/cheaptrick --help
 ```
 
-Or install directly into your `$GOPATH/bin`:
+Or install to `$GOPATH/bin`:
 
 ```bash
 make install
@@ -72,26 +80,20 @@ cheaptrick --help
 
 ---
 
-## 📖 Usage
+## Usage
 
-Cheaptrick has four main subcommands: **`start`**, **`web`**, **`shell`**, and **`fixtures`**.
+Cheaptrick provides four subcommands: `start`, `web`, `shell`, and
+`fixtures`.
 
-### `start` — Launch the mock server + TUI
+### `start` — Mock server with TUI
 
 ```bash
-# Defaults to localhost:8080
 cheaptrick start
-
-# Custom port and fixture directory
 cheaptrick start --port 9090 --fixtures ./my_fixtures
-
-# With TLS
 cheaptrick start --tls-cert cert.pem --tls-key key.pem
 ```
 
-**The workflow in 60 seconds:**
-
-Open a second terminal and fire a request at the mock server:
+Send a request from another terminal:
 
 ```bash
 curl -s -X POST \
@@ -100,56 +102,388 @@ curl -s -X POST \
   -d '{"contents":[{"parts":[{"text":"Hello Gemini!"}]}]}'
 ```
 
-The curl hangs. In the TUI, a **\[PENDING\]** request appears. Select it, press **Enter** to open the response composer, hit **F1** for a text-response template, edit the JSON to your liking, and press **Ctrl+S**. The curl returns your crafted response immediately.
+The request blocks. In the TUI, select the pending request, press
+**Enter**, compose a response (or press **F1** for a text template), and
+**Ctrl+S** to send. The curl command returns with your response.
 
-Want to replay that same response automatically next time? Press **Ctrl+F** to save it as a fixture. Future identical requests get an instant **\[AUTO\]** reply.
+Press **Ctrl+F** to save the response as a fixture. Subsequent identical
+requests are auto-replied.
 
-### `web` — Launch the mock server + Web UI
-
-Prefer the browser over the terminal? The `web` command starts the mock API and serves a beautiful React frontend embedded right in the binary. No Node.js required!
+### `web` — Mock server with browser UI
 
 ```bash
-# Starts API on :8080 and Web UI on :3000
 cheaptrick web
-
-# Custom ports and auto-open browser
 cheaptrick web --port 9090 --web-port 4000 --open
 ```
 
-The Web UI comes with everything from the TUI: a request list, JSON syntax highlighting, response composing, templates (F1-F4), and fixture saving (Ctrl+S / Ctrl+F).
+Starts the mock API on `:8080` and serves the React frontend on `:3000`.
+The frontend is embedded in the binary — no separate build step or
+Node.js installation is needed. Functionality is identical to the TUI:
+request list, detail view, response composer, templates, and fixtures.
 
-### `shell` — Interactive REPL for quick testing
-
-Talk to your mock server directly without constructing curl payloads. The shell uses the official `google.golang.org/genai` client under the hood.
+### `shell` — Interactive REPL
 
 ```bash
 cheaptrick shell
 cheaptrick shell --host 127.0.0.1 --port 9090 --model gemini-1.5-pro
 ```
 
+The shell sends `GenerateContent` requests to your running mock server
+using the official genai client. It maintains conversation history across
+turns, detects function-call responses, and supports canned tool
+responses for automated tool-call loop testing.
+
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-H, --host` | `localhost` | Mock server host |
 | `-p, --port` | `8080` | Mock server port |
 | `-m, --model` | `gemini-2.0-flash` | Model name in requests |
+| `--tool-responses` | | Directory for canned tool response files |
+| `--auto` | `false` | Auto-send canned responses without prompting |
+| `--max-turns` | `20` | Maximum tool-call loop iterations |
 | `--history-file` | OS temp dir | Readline history path |
 
-Set `GEMINI_API_KEY` if your client requires one (Cheaptrick ignores it).
+`GEMINI_API_KEY` can be set but is not validated by the mock server.
 
-### `fixtures` — Generate starter fixture files
-
-Bootstrap 30 predefined fixtures for common text and tool-call prompts, plus a `MANIFEST.md` index.
+### `fixtures` — Generate starter fixtures
 
 ```bash
 cheaptrick fixtures
 cheaptrick fixtures --output-dir ./test_assets
 ```
 
+Generates 30 predefined fixture files for common text and tool-call
+prompts, plus a `MANIFEST.md` index.
+
 ---
 
-## 🔌 Connecting Your App
+## Tool-Call Debugging with the Shell
 
-Point any official Gemini SDK at `http://localhost:8080` and use any string as the API key. Cheaptrick doesn't validate credentials.
+The shell is designed for debugging multi-turn tool-calling flows. In this
+setup, the developer operates both sides of the conversation:
+
+- **The shell** acts as the tool executor — it resolves canned responses
+  from disk and sends `FunctionResponse` parts automatically.
+- **The developer** (via the TUI or web UI) acts as the model — crafting
+  `FunctionCall` or text responses for each turn.
+
+This two-terminal workflow lets you simulate complete agentic loops,
+control every decision boundary, and build fixture libraries that capture
+multi-step flows.
+
+### How it works
+
+```
+ Terminal 1 (shell)                    Terminal 2 (TUI or browser)
+ ──────────────────                    ────────────────────────────
+ Prompt> What's the weather?
+   → GenerateContent sent to :8080
+   → blocks, waiting...
+                                       [PENDING] req-01 appears
+                                       Press F2, compose:
+                                         get_weather(city="Paris")
+                                       Ctrl+S to send
+
+ Receives FunctionCall:
+   get_weather(city="Paris")
+ Resolves: mock_tools/get_weather/paris.json
+   → {"temp": 18, "condition": "cloudy"}
+ [Enter] to accept
+
+ FunctionResponse sent,
+   next GenerateContent to :8080
+   → blocks again...
+                                       [PENDING] req-02 appears
+                                       (request shows FunctionResponse
+                                        in the conversation history)
+                                       Press F1, type:
+                                         "It's 18°C and cloudy."
+                                       Ctrl+S to send
+
+ Receives text response:
+   "It's 18°C and cloudy."
+ Prints to terminal. Chain complete.
+
+ ─── Chain Complete (3 turns, 12.4s) ──────────
+  1  user  │ What's the weather?
+  2  mock  │ ƒ get_weather(city="Paris")     [via TUI]
+  3  tool  │ → {"temp":18,"condition":"cloudy"} [canned: paris.json]
+  4  mock  │ It's 18°C and cloudy.           [via TUI]
+ ─────────────────────────────────────────────
+
+ Prompt> _
+```
+
+### Setting up canned tool responses
+
+Create a directory for your tool response files and pass it to the shell
+with `--tool-responses`:
+
+```bash
+cheaptrick shell --tool-responses ./mock_tools
+```
+
+The shell resolves canned responses using the following priority:
+
+1. **Argument-matched** — `<dir>/<function>/_match.json` routes to
+   different files based on argument values.
+2. **Sequenced** — `<dir>/<function>.N.json` returns different responses
+   for the Nth call to that function.
+3. **Static** — `<dir>/<function>.json` returns the same response every
+   time.
+4. **Subdirectory default** — `<dir>/<function>/_default.json` as a
+   fallback.
+5. **Manual** — If no file matches, the shell displays the function call
+   as structured JSON with a warning listing every path that was checked,
+   and prompts for manual input.
+
+#### Static response
+
+A single file per function, returned regardless of arguments.
+
+```
+mock_tools/
+  web_search.json
+```
+
+```json
+{
+  "results": [
+    {"title": "Example", "url": "https://example.com", "snippet": "..."}
+  ]
+}
+```
+
+#### Argument-matched responses
+
+Route to different files based on a top-level argument field.
+
+```
+mock_tools/
+  get_weather/
+    _match.json
+    paris.json
+    tokyo.json
+    _default.json
+```
+
+**`_match.json`** — routing rule:
+
+```json
+{
+  "field": "city",
+  "matches": {
+    "Paris": "paris",
+    "Tokyo": "tokyo"
+  },
+  "default": "_default"
+}
+```
+
+Matching is case-insensitive. The `default` key names the fallback file
+when no rule matches.
+
+**`paris.json`**:
+
+```json
+{"temp": 18, "condition": "cloudy", "humidity": 65}
+```
+
+**`tokyo.json`**:
+
+```json
+{"temp": 28, "condition": "sunny", "humidity": 40}
+```
+
+**`_default.json`**:
+
+```json
+{"temp": 20, "condition": "unknown", "humidity": 50}
+```
+
+When the developer crafts a `get_weather(city="Paris")` function call in
+the TUI, the shell matches on the `city` field and loads `paris.json`.
+
+#### Sequenced responses
+
+Different response per call count, useful for pagination or polling flows.
+
+```
+mock_tools/
+  fetch_page.1.json    # returned on 1st call
+  fetch_page.2.json    # returned on 2nd call
+  fetch_page.3.json    # returned on 3rd+ calls (clamped to highest)
+```
+
+**`fetch_page.1.json`**:
+
+```json
+{"items": [{"id": 1}, {"id": 2}], "has_more": true}
+```
+
+**`fetch_page.2.json`**:
+
+```json
+{"items": [{"id": 3}, {"id": 4}], "has_more": true}
+```
+
+**`fetch_page.3.json`**:
+
+```json
+{"items": [], "has_more": false}
+```
+
+Call counters reset on `/clear`.
+
+#### Argument substitution
+
+Canned files support `{{args.fieldname}}` placeholders that are replaced
+with actual argument values at resolution time:
+
+**`create_record.json`**:
+
+```json
+{
+  "id": "{{args.id}}",
+  "name": "{{args.name}}",
+  "status": "created"
+}
+```
+
+If the function call is `create_record(id="abc-123", name="Test")`, the
+shell sends:
+
+```json
+{
+  "id": "abc-123",
+  "name": "Test",
+  "status": "created"
+}
+```
+
+Missing fields leave the placeholder as-is and print a warning.
+
+### Step mode and auto mode
+
+In **step mode** (default), the shell pauses at every function call and
+shows the resolved canned response for review:
+
+```
+┌─ FUNCTION CALL ──────────────────────────────────┐
+│  get_weather                                     │
+│                                                  │
+│  Arguments:                                      │
+│    city: "Paris"                                 │
+│    units: "celsius"                              │
+│                                                  │
+│  Canned: mock_tools/get_weather/paris.json       │
+│  {"temp": 18, "condition": "cloudy"}             │
+│                                                  │
+│  [Enter] Accept  [e] Edit  [s] Accept & Save    │
+│  [t] Type new    [x] Abort chain                 │
+└──────────────────────────────────────────────────┘
+```
+
+When no canned response is found, the shell shows the full function call
+with a warning listing every path it checked:
+
+```
+┌─ FUNCTION CALL ──────────────────────────────────┐
+│  analyze_sentiment                               │
+│                                                  │
+│  Arguments:                                      │
+│  {                                               │
+│    "text": "I love this product",                │
+│    "language": "en"                              │
+│  }                                               │
+│                                                  │
+│  ⚠ No canned response found.                    │
+│  Checked:                                        │
+│    ✗ mock_tools/analyze_sentiment/_match.json    │
+│    ✗ mock_tools/analyze_sentiment.1.json         │
+│    ✗ mock_tools/analyze_sentiment.json           │
+│    ✗ mock_tools/analyze_sentiment/_default.json  │
+│                                                  │
+│  Type the tool's return value as JSON:           │
+└──────────────────────────────────────────────────┘
+Tool Response> {"sentiment": "positive", "score": 0.95}
+Save as mock_tools/analyze_sentiment.json? [y/N]
+```
+
+In **auto mode** (`--auto` flag or `/auto` command), canned responses are
+sent immediately without pausing. The shell falls back to step mode for
+any function call without a matching file.
+
+```
+  → get_weather(city="Paris") ← mock_tools/get_weather/paris.json [auto]
+  → get_weather(city="Tokyo") ← mock_tools/get_weather/tokyo.json [auto]
+```
+
+### Failure injection
+
+Test error handling by injecting failures before the mock server sends
+a function call:
+
+```
+/fail get_weather           # next call returns an error (one-shot)
+/fail get_weather persist   # every call errors until /unfail get_weather
+/timeout fetch_page 10      # next call delays 10s before responding
+```
+
+The injected error `FunctionResponse`:
+
+```json
+{"error": "Service unavailable: get_weather failed (injected by /fail)"}
+```
+
+### Exporting conversations as fixture sequences
+
+After completing a multi-turn flow, export the full conversation for
+deterministic replay:
+
+```
+/export weather_flow
+```
+
+Creates:
+
+```
+fixtures/weather_flow/
+  001_request.json      # 1st GenerateContent request body
+  001_response.json     # FunctionCall response from mock
+  002_request.json      # 2nd GenerateContent (includes FunctionResponse)
+  002_response.json     # 2nd FunctionCall or text response
+  003_request.json      # 3rd GenerateContent
+  003_response.json     # Final text response
+  manifest.json         # model, timestamp, turn count, file index
+```
+
+These sequences can be loaded by `cheaptrick start` or `cheaptrick web`
+to replay entire multi-turn flows without human input.
+
+### Shell commands
+
+| Command | Description |
+|---------|-------------|
+| `/clear` | Reset conversation history and call counters |
+| `/history` | Print the full conversation as formatted turns |
+| `/trace` | Reprint the trace of the last completed chain |
+| `/auto` | Switch to auto mode |
+| `/step` | Switch to step mode |
+| `/tools` | List canned tool response files found in `--tool-responses` dir |
+| `/fail <fn>` | Inject an error for the next call to `<fn>` |
+| `/fail <fn> persist` | Inject errors for all calls to `<fn>` |
+| `/unfail <fn>` | Remove persistent failure injection |
+| `/timeout <fn> <sec>` | Delay the next call to `<fn>` by N seconds |
+| `/export <name>` | Export conversation as a numbered fixture sequence |
+| `/help` | List all commands |
+| `/quit` | Exit the shell |
+
+---
+
+## Connecting Your App
+
+Point any Gemini SDK at `http://localhost:8080` with any API key string.
 
 ### Go
 
@@ -204,7 +538,7 @@ let agent = client
 let response = agent.prompt("Hello!").await?;
 ```
 
-**Tip:** Use an environment variable to toggle between mock and production:
+### Environment-based switching (Rust)
 
 ```rust
 fn gemini_client() -> gemini::Client {
@@ -220,16 +554,15 @@ fn gemini_client() -> gemini::Client {
 ```
 
 ```bash
-# Development
-GEMINI_MOCK_URL=http://localhost:8080 cargo run
-
-# Production
-GEMINI_API_KEY=sk-real-key cargo run
+GEMINI_MOCK_URL=http://localhost:8080 cargo run   # development
+GEMINI_API_KEY=your-real-key cargo run             # production
 ```
 
 ---
 
-## ⌨️ Keybindings
+## Keybindings
+
+These apply to both the TUI and Web UI.
 
 | Key | Action |
 |-----|--------|
@@ -241,60 +574,73 @@ GEMINI_API_KEY=sk-real-key cargo run
 | `F3` | Insert `429 Too Many Requests` error |
 | `F4` | Insert `500 Internal Server Error` |
 | `Ctrl+S` | Send composed response |
-| `Ctrl+F` | Save response as auto-replay fixture |
+| `Ctrl+F` | Save response as fixture for auto-replay |
 | `Esc` | Exit composer / cancel |
 | `q` | Quit (confirms if requests are pending) |
 
 ---
 
-## 🏗️ How It Works
+## Architecture
 
 ```
 ┌─────────────┐         ┌──────────────────────────────────────────┐
 │  Your App   │  HTTP   │              Cheaptrick                  │
 │  (any SDK)  │────────▶│                                          │
-│             │         │  ┌────────┐  event hook   ┌───────────┐  │
+│             │         │  ┌────────┐  observer     ┌───────────┐  │
 │             │◀────────│  │ Server │──────────────▶│ TUI / Web │  │
 │             │         │  │  :8080 │◀──────────────│   UI      │  │
-└─────────────┘         │  └────────┘  response     └───────────┘  │
+└─────────────┘         │  └────────┘  response ch  └───────────┘  │
                         │       │                                  │
                         │       ▼                                  │
                         │  ┌────────┐                              │
-                        │  │Fixtures│  (auto-reply if match found) │
+                        │  │Fixtures│  (auto-reply if hash match)  │
                         │  └────────┘                              │
                         └──────────────────────────────────────────┘
 ```
 
-The HTTP server runs in a goroutine. When a request arrives, it checks the fixture store first. On a cache miss, it notifies the UI observers (Bubble Tea TUI or React Web UI via WebSocket) and blocks until you compose a response. Everything is recorded via an internal shared Request Store.
+The mock server and the UI (TUI or web) share a `RequestStore` through
+a `RequestObserver` interface. Requests check the fixture store first;
+on a miss, they block until a response is composed through the UI. The
+web UI communicates over WebSocket for real-time updates.
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
-- [ ] Streaming response support (`streamGenerateContent` with SSE chunking)
-- [ ] Fixture fuzzy matching (ignore timestamps, IDs)
-- [ ] Request diffing (highlight what changed between similar requests)
-- [ ] Multi-turn conversation threading in the TUI
-- [ ] Export fixtures as Go/Python/Rust test helpers
-- [ ] Plugin system for custom response logic
+**In progress:**
+
+- `streamGenerateContent` support with SSE chunking for streaming clients
+- Fixture fuzzy matching — ignore volatile fields (timestamps, UUIDs,
+  request IDs) when computing fixture hashes
+
+**Planned:**
+
+- Proxy recording mode — forward requests to the real Gemini API while
+  saving request/response pairs as fixtures, enabling migration from
+  live development to fully mocked development
+- Response schema validation — validate composed responses against the
+  Gemini `GenerateContentResponse` schema before sending, catching
+  structural errors before they reach your client code
+- Latency simulation — configurable response delays per fixture to test
+  timeout handling and loading states in client code
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome and appreciated. Whether it's a bug fix, new feature, documentation improvement, or fixture template — all PRs are valued.
+Contributions are welcome. Bug fixes, fixture templates, documentation
+improvements, and feature implementations are all appreciated.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create a feature branch (`git checkout -b feature/my-change`)
+3. Commit your changes (`git commit -m 'Add my change'`)
+4. Push to the branch (`git push origin feature/my-change`)
 5. Open a Pull Request
 
-Please open an issue first for large changes so we can discuss the approach.
+Open an issue first for large changes so the approach can be discussed.
 
 ---
 
-## 📄 License
+## License
 
-Distributed under the MIT License. See [LICENSE.md](LICENSE.md) for details.
-
+MIT. See [LICENSE.md](LICENSE.md).
