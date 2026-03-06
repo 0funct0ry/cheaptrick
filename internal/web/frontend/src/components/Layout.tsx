@@ -29,15 +29,15 @@ export function Layout({
                 wsStatus === 'reconnecting' ? 'bg-amber-500 animate-bounce' : 'bg-red-500';
 
     return (
-        <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 overflow-hidden">
+        <div className="flex h-screen flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-200 overflow-hidden">
             {/* Header */}
-            <header className="flex h-12 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4">
+            <header className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50 bg-white dark:bg-zinc-950 px-4">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 font-semibold text-lg">
                         🎭 <span className="hidden sm:inline">Cheaptrick</span>
                     </div>
                     {pendingCount > 0 && (
-                        <span className="inline-flex items-center rounded-full bg-amber-500 text-slate-900 px-2.5 py-0.5 text-xs font-bold">
+                        <span className="inline-flex items-center rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-2.5 py-0.5 text-xs font-bold ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 animate-pulse">
                             {pendingCount} pending
                         </span>
                     )}
@@ -51,7 +51,7 @@ export function Layout({
 
                     <button
                         onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                     >
                         {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                     </button>
