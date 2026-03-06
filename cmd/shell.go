@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
-	"google.golang.org/genai"
+
+	"cheaptrick/internal/shell"
 )
 
 var (
@@ -17,6 +16,9 @@ var (
 	shellPort    int
 	shellModel   string
 	shellHistory string
+	shellTools   string
+	shellAuto    bool
+	shellMax     int
 )
 
 var shellCmd = &cobra.Command{
@@ -25,63 +27,31 @@ var shellCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 
-		baseURL := fmt.Sprintf("http://%s:%d", shellHost, shellPort)
+		baseURL := "http://" + shellHost + ":" + cmd.Flag("port").Value.String()
 
 		apiKey := os.Getenv("GEMINI_API_KEY")
 		if apiKey == "" {
 			apiKey = "mock-key"
 		}
 
-		// Initialize the client configured to hit the mock server
-		client, err := genai.NewClient(ctx, &genai.ClientConfig{
-			HTTPOptions: genai.HTTPOptions{
-				BaseURL: baseURL,
-			},
-			APIKey: apiKey,
-		})
-		if err != nil {
-			log.Fatalf("Failed to create genai client: %v", err)
+		cfg := shell.Config{
+			BaseURL:     baseURL,
+			Model:       shellModel,
+			APIKey:      apiKey,
+			HistoryPath: shellHistory,
+			ToolResDir:  shellTools,
+			AutoMode:    shellAuto,
+			MaxTurns:    shellMax,
 		}
 
-		rl, err := readline.NewEx(&readline.Config{
-			Prompt:          "\033[36mPrompt>\033[0m ",
-			HistoryFile:     shellHistory,
-			InterruptPrompt: "^C",
-			EOFPrompt:       "exit",
-		})
+		repl, err := shell.NewREPL(cfg)
 		if err != nil {
-			log.Fatalf("Failed to initialize readline: %v", err)
+			log.Fatalf("Failed to initialize shell REPL: %v", err)
 		}
-		defer rl.Close()
+		defer repl.Close()
 
-		fmt.Printf("Connected to local Gemini Mock Server (%s)\n", baseURL)
-		fmt.Printf("Using model: %s\n", shellModel)
-		fmt.Println("Enter your prompts below. Press Ctrl+D (EOF) to exit.")
-		fmt.Println("---------------------------------------------------------")
-
-		for {
-			line, err := rl.Readline()
-			if err != nil { // EOF (Ctrl+D) or Ctrl+C
-				break
-			}
-			if line == "" {
-				continue
-			}
-
-			// Generate content
-			resp, err := client.Models.GenerateContent(ctx, shellModel, genai.Text(line), nil)
-			if err != nil {
-				fmt.Printf("\033[31mError generating content: %v\033[0m\n", err)
-				continue
-			}
-
-			// Print response text
-			fmt.Println("\033[32mMock Server Response:\033[0m")
-			if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-				fmt.Printf("%s\n\n", resp.Text())
-			} else {
-				fmt.Printf("%+v\n\n", resp)
-			}
+		if err := repl.Run(ctx); err != nil {
+			log.Fatalf("Shell REPL error: %v", err)
 		}
 	},
 }
@@ -93,6 +63,10 @@ func init() {
 	shellCmd.Flags().IntVarP(&shellPort, "port", "p", 8080, "Port of the mock server")
 	shellCmd.Flags().StringVarP(&shellModel, "model", "m", "gemini-2.0-flash", "Gemini model to use in requests")
 	shellCmd.Flags().StringVar(&shellHistory, "history-file", defaultHistory, "Path to the readline history file")
+
+	shellCmd.Flags().StringVar(&shellTools, "tool-responses", "", "Directory containing canned tool response files")
+	shellCmd.Flags().BoolVar(&shellAuto, "auto", false, "Enable auto-mode for tool responses")
+	shellCmd.Flags().IntVar(&shellMax, "max-turns", 20, "Maximum turns in a tool call chain before aborting")
 
 	rootCmd.AddCommand(shellCmd)
 }
