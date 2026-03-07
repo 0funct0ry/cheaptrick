@@ -22,16 +22,16 @@ export function useRequests() {
         fetchRequests();
     }, [fetchRequests]);
 
-    const handleWsEvent = useCallback((event: any) => {
+    const handleWsEvent = useCallback((event: Record<string, unknown>) => {
         if (event.type === 'new_request') {
-            setRequests(prev => [event.request, ...prev]);
+            setRequests(prev => [event.request as RequestItem, ...prev]);
         } else if (event.type === 'request_responded') {
             setRequests(prev => prev.map(req =>
-                req.id === event.id ? { ...req, status: 'responded', via: event.via } : req
+                req.id === event.id ? { ...req, status: 'responded', via: event.via as string } : req
             ));
         } else if (event.type === 'fixture_saved') {
             setRequests(prev => prev.map(req =>
-                req.id === event.request_id ? { ...req, fixture_hash: event.hash } : req
+                req.id === event.request_id ? { ...req, fixture_hash: event.hash as string } : req
             ));
         } else if (event.type === 'request_deleted') {
             setRequests(prev => prev.filter(req => req.id !== event.id));

@@ -39,6 +39,8 @@ func NewRouter(reqStore *store.Store, fixtureDir string) *gin.Engine {
 		api.POST("/requests/:id/fixture", h.saveFixture)
 		api.GET("/templates", h.listTemplates)
 		api.GET("/fixtures", h.listFixtures)
+		api.GET("/fixtures/:hash", h.getFixture)
+		api.POST("/fixtures", h.createFixture)
 		api.DELETE("/fixtures/:hash", h.deleteFixture)
 		api.DELETE("/requests/:id", h.deleteRequest)
 		api.DELETE("/requests", h.clearRequests)

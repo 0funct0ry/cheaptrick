@@ -7,11 +7,15 @@ import clsx from 'clsx';
 export function Layout({
     children,
     wsStatus,
-    pendingCount
+    pendingCount,
+    activeTab,
+    onTabChange
 }: {
     children: ReactNode;
     wsStatus: WsStatus;
     pendingCount: number;
+    activeTab?: 'requests' | 'fixtures';
+    onTabChange?: (tab: 'requests' | 'fixtures') => void;
 }) {
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -42,6 +46,33 @@ export function Layout({
                         </span>
                     )}
                 </div>
+
+                {onTabChange && (
+                    <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1 self-center mx-auto">
+                        <button
+                            onClick={() => onTabChange('requests')}
+                            className={clsx(
+                                "px-3 py-1 text-sm font-medium rounded-md transition-all",
+                                activeTab === 'requests'
+                                    ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                            )}
+                        >
+                            Requests
+                        </button>
+                        <button
+                            onClick={() => onTabChange('fixtures')}
+                            className={clsx(
+                                "px-3 py-1 text-sm font-medium rounded-md transition-all",
+                                activeTab === 'fixtures'
+                                    ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                            )}
+                        >
+                            Fixtures
+                        </button>
+                    </div>
+                )}
 
                 <div className="flex items-center gap-4 text-sm font-medium">
                     <div className="flex items-center gap-2">

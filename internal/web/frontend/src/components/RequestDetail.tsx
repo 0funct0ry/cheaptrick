@@ -19,7 +19,7 @@ function CollapsibleSection({ title, defaultOpen = true, children }: { title: st
     );
 }
 
-function JsonViewer({ data }: { data: any }) {
+function JsonViewer({ data }: { data: unknown }) {
     return (
         <pre className="text-[11px] leading-snug font-mono bg-zinc-100 dark:bg-zinc-900 p-4 rounded-lg overflow-x-auto text-zinc-800 dark:text-zinc-300 shadow-inner">
             {JSON.stringify(data, null, 2)}
@@ -47,29 +47,36 @@ export function RequestDetail({ req }: { req: RequestDetailType }) {
                 {req.contents && req.contents.length > 0 && (
                     <CollapsibleSection title="Contents">
                         <div className="flex flex-col gap-4">
-                            {req.contents.map((msg: any, i: number) => {
+                            {req.contents.map((msgRaw: unknown, i: number) => {
+                                const msg = msgRaw as Record<string, unknown>;
                                 const isUser = msg.role === 'user';
                                 return (
                                     <div key={i} className={clsx("flex flex-col w-full max-w-[90%] gap-1", isUser ? "self-end items-end" : "self-start items-start")}>
-                                        <span className="text-xs font-bold text-zinc-500 uppercase px-1">{msg.role}</span>
+                                        <span className="text-xs font-bold text-zinc-500 uppercase px-1">{msg.role as string}</span>
                                         <div className={clsx(
                                             "p-3 rounded-2xl text-sm whitespace-pre-wrap font-sans",
                                             isUser
                                                 ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-tr-sm"
                                                 : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 rounded-tl-sm border border-zinc-200/50 dark:border-zinc-700"
                                         )}>
-                                            {msg.parts?.map((p: any, j: number) => {
-                                                if (p.text) return <span key={j}>{p.text}</span>;
-                                                if (p.functionCall) return (
-                                                    <div key={j} className="font-mono text-xs bg-black/10 dark:bg-black/30 p-2 rounded mt-1 overflow-x-auto break-all">
-                                                        {p.functionCall.name}({JSON.stringify(p.functionCall.args)})
-                                                    </div>
-                                                );
-                                                if (p.functionResponse) return (
-                                                    <div key={j} className="font-mono text-xs p-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded mt-1 overflow-x-auto whitespace-pre-wrap break-all">
-                                                        {JSON.stringify(p.functionResponse.response, null, 2)}
-                                                    </div>
-                                                );
+                                            {(msg.parts as Record<string, unknown>[])?.map((p: Record<string, unknown>, j: number): React.ReactNode => {
+                                                if (p.text) return <span key={j}>{p.text as string}</span>;
+                                                if (p.functionCall) {
+                                                    const fc = p.functionCall as Record<string, unknown>;
+                                                    return (
+                                                        <div key={j} className="font-mono text-xs bg-black/10 dark:bg-black/30 p-2 rounded mt-1 overflow-x-auto break-all">
+                                                            {fc.name as string}({JSON.stringify(fc.args)})
+                                                        </div>
+                                                    );
+                                                }
+                                                if (p.functionResponse) {
+                                                    const fr = p.functionResponse as Record<string, unknown>;
+                                                    return (
+                                                        <div key={j} className="font-mono text-xs p-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded mt-1 overflow-x-auto whitespace-pre-wrap break-all">
+                                                            {JSON.stringify(fr.response, null, 2)}
+                                                        </div>
+                                                    );
+                                                }
                                                 return <span key={j}>[Unknown part]</span>;
                                             })}
                                         </div>
@@ -86,7 +93,7 @@ export function RequestDetail({ req }: { req: RequestDetailType }) {
                     </CollapsibleSection>
                 )}
 
-                {req.generation_config && (
+                {!!req.generation_config && (
                     <CollapsibleSection title="Generation Config" defaultOpen={false}>
                         <JsonViewer data={req.generation_config} />
                     </CollapsibleSection>
@@ -96,7 +103,7 @@ export function RequestDetail({ req }: { req: RequestDetailType }) {
                     <JsonViewer data={req.body} />
                 </CollapsibleSection>
 
-                {req.response && (
+                {!!req.response && (
                     <CollapsibleSection title="Sent Response" defaultOpen={true}>
                         <JsonViewer data={req.response} />
                     </CollapsibleSection>

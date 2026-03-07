@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { WsStatus } from '../lib/types';
 
-export function useWebSocket(onEvent: (event: any) => void) {
+export function useWebSocket(onEvent: (event: Record<string, unknown>) => void) {
     const [status, setStatus] = useState<WsStatus>('connecting');
     const wsRef = useRef<WebSocket | null>(null);
 
@@ -25,15 +25,15 @@ export function useWebSocket(onEvent: (event: any) => void) {
 
         ws.onclose = () => {
             setStatus('disconnected');
-            setTimeout(() => {
-                setStatus('reconnecting');
-                connect();
-            }, 2000);
+            // Remove the auto-reconnect from here to avoid the scope issue,
+            // or pass it in as a param/handle it in a separate effect.
         };
 
         ws.onerror = () => {
             ws.close();
         };
+
+        return ws;
     }, [onEvent]);
 
     useEffect(() => {
@@ -45,6 +45,16 @@ export function useWebSocket(onEvent: (event: any) => void) {
             }
         };
     }, [connect]);
+
+    useEffect(() => {
+        if (status === 'disconnected') {
+            const timer = setTimeout(() => {
+                setStatus('reconnecting');
+                connect();
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [status, connect]);
 
     return { status };
 }

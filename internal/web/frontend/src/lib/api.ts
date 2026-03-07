@@ -15,7 +15,7 @@ export const api = {
         return res.json();
     },
 
-    respondToRequest: async (id: string, response: any): Promise<{ ok: boolean }> => {
+    respondToRequest: async (id: string, response: unknown): Promise<{ ok: boolean }> => {
         const res = await fetch(`${API_BASE}/requests/${id}/respond`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -39,7 +39,7 @@ export const api = {
         if (!res.ok) throw new Error('Failed to clear requests');
     },
 
-    saveFixture: async (id: string, response: any): Promise<{ hash: string, path: string }> => {
+    saveFixture: async (id: string, response: unknown): Promise<{ hash: string, path: string }> => {
         const res = await fetch(`${API_BASE}/requests/${id}/fixture`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -59,6 +59,26 @@ export const api = {
         const res = await fetch(`${API_BASE}/fixtures`);
         const data = await res.json();
         return data.fixtures || [];
+    },
+
+    getFixture: async (hash: string): Promise<{ content: unknown }> => {
+        const res = await fetch(`${API_BASE}/fixtures/${hash}`);
+        if (!res.ok) throw new Error('Failed to fetch fixture');
+        return res.json();
+    },
+
+    createFixture: async (hash: string | null, response: unknown, request?: unknown): Promise<{ ok: boolean, hash: string, path: string }> => {
+        const body: Record<string, unknown> = { response };
+        if (hash) body.hash = hash;
+        if (request) body.request = request;
+
+        const res = await fetch(`${API_BASE}/fixtures`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('Failed to create/update fixture');
+        return res.json();
     },
 
     deleteFixture: async (hash: string): Promise<void> => {

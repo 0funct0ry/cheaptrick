@@ -8,13 +8,9 @@ import clsx from 'clsx';
 export function ResponseComposer({
     reqId,
     isAnswered,
-    onSent,
-    onSaved
 }: {
     reqId: string;
     isAnswered: boolean;
-    onSent: (id: string) => void;
-    onSaved: (hash: string) => void;
 }) {
     const [value, setValue] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -42,8 +38,8 @@ export function ResponseComposer({
         try {
             JSON.parse(value);
             setError(null);
-        } catch (e: any) {
-            setError(e.message);
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Invalid JSON');
         }
     }, [value]);
 
@@ -53,11 +49,10 @@ export function ResponseComposer({
             setSubmitting(true);
             const parsed = JSON.parse(value);
             await api.respondToRequest(reqId, parsed);
-            onSent(reqId);
             setValue('');
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            alert(e.message);
+            alert(e instanceof Error ? e.message : 'Unknown error');
         } finally {
             setSubmitting(false);
         }
@@ -67,11 +62,10 @@ export function ResponseComposer({
         if (error || !value.trim() || isAnswered) return;
         try {
             const parsed = JSON.parse(value);
-            const res = await api.saveFixture(reqId, parsed);
-            onSaved(res.hash);
-        } catch (e: any) {
+            await api.saveFixture(reqId, parsed);
+        } catch (e: unknown) {
             console.error(e);
-            alert(e.message);
+            alert(e instanceof Error ? e.message : 'Unknown error');
         }
     };
 

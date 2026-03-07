@@ -1,8 +1,6 @@
 package server
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -60,25 +58,7 @@ func StartHTTPServer(port, tlsCert, tlsKey, fixturesDir, logFile string, reqStor
 			return
 		}
 
-		canonical := []byte("")
-		if contents, ok := parsed["contents"].([]interface{}); ok && len(contents) > 0 {
-			if firstContent, ok := contents[0].(map[string]interface{}); ok {
-				if parts, ok := firstContent["parts"].([]interface{}); ok && len(parts) > 0 {
-					if firstPart, ok := parts[0].(map[string]interface{}); ok {
-						if text, ok := firstPart["text"].(string); ok {
-							canonical = []byte(text)
-						}
-					}
-				}
-			}
-		}
-
-		if len(canonical) == 0 {
-			canonical, _ = json.Marshal(parsed)
-		}
-
-		h := sha256.Sum256(canonical)
-		hashStr := hex.EncodeToString(h[:])
+		hashStr := fixture.ComputeRequestHash(parsed)
 
 		reqID := nextReqID()
 		timestamp := time.Now()

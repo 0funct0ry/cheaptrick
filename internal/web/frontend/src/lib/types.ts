@@ -6,22 +6,22 @@ export interface RequestItem {
     via?: string;
     fixture_hash?: string;
     preview: string;
-    body: any;
+    body: unknown;
     tools: string[];
 }
 
 export interface RequestDetail extends RequestItem {
     system_instruction: string;
-    contents: any[];
-    generation_config: any;
-    response?: any;
+    contents: unknown[];
+    generation_config: unknown;
+    response?: unknown;
 }
 
 export interface Template {
     id: string;
     label: string;
     shortcut: string;
-    body: any;
+    body: unknown;
 }
 
 export interface Fixture {

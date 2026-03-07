@@ -246,6 +246,75 @@ func (h *apiHandler) listFixtures(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"fixtures": fixtures})
 }
 
+func (h *apiHandler) getFixture(c *gin.Context) {
+	hash := c.Param("hash")
+	if h.fixtureDir == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "fixtures dir not set"})
+		return
+	}
+	content, ok := fixture.GetFixture(h.fixtureDir, hash)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "fixture not found"})
+		return
+	}
+
+	var jsonContent interface{}
+	if err := json.Unmarshal([]byte(content), &jsonContent); err == nil {
+		c.JSON(http.StatusOK, gin.H{"content": jsonContent})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"content": content})
+	}
+}
+
+func (h *apiHandler) createFixture(c *gin.Context) {
+	if h.fixtureDir == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "fixtures dir not set"})
+		return
+	}
+
+	var reqBody struct {
+		Hash     string      `json:"hash"`
+		Request  interface{} `json:"request"`
+		Response interface{} `json:"response"`
+	}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON in request body: " + err.Error()})
+		return
+	}
+
+	if reqBody.Hash == "" {
+		if reqBody.Request == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "either hash or request must be provided"})
+			return
+		}
+
+		// Attempt to parse the request interface as a map
+		if reqMap, ok := reqBody.Request.(map[string]interface{}); ok {
+			reqBody.Hash = fixture.ComputeRequestHash(reqMap)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "request format is invalid"})
+			return
+		}
+	}
+
+	respBytes, err := json.MarshalIndent(reqBody.Response, "", "  ")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON in response"})
+		return
+	}
+
+	if err := fixture.SaveFixture(h.fixtureDir, reqBody.Hash, string(respBytes)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save fixture"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":   true,
+		"hash": reqBody.Hash,
+		"path": filepath.Join(h.fixtureDir, reqBody.Hash+".json"),
+	})
+}
+
 func (h *apiHandler) deleteFixture(c *gin.Context) {
 	hash := c.Param("hash")
 	if h.fixtureDir == "" {
