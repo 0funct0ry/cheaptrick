@@ -17,8 +17,13 @@ import (
 )
 
 var (
-	webPort string
-	openUI  bool
+	port        string
+	fixturesDir string
+	logFile     string
+	tlsCert     string
+	tlsKey      string
+	webPort     string
+	openUI      bool
 )
 
 func openBrowser(url string) {
