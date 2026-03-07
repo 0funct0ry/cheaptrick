@@ -228,7 +228,7 @@ export function FixtureManager() {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
-                        <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+                        <div className="flex flex-col items-center">
                             <p className="text-lg font-medium text-slate-700 dark:text-slate-300">No fixture selected</p>
                             <p className="text-sm mt-2 mb-6 opacity-70">Select a fixture from the sidebar to edit, or create a new one.</p>
                             <button
