@@ -40,12 +40,12 @@ func (t tuiRequest) Title() string {
 	if t.Answered {
 		status = "[ANSWERED]"
 	}
-	return fmt.Sprintf("%s: %s", status, t.ID)
+	return fmt.Sprintf("%s: %s", status, t.Request.ID)
 }
 
 func (t tuiRequest) Description() string {
 	desc := ""
-	if contents, ok := t.ParsedBody["contents"].([]interface{}); ok && len(contents) > 0 {
+	if contents, ok := t.Request.ParsedBody["contents"].([]interface{}); ok && len(contents) > 0 {
 		if contentMap, ok := contents[0].(map[string]interface{}); ok {
 			if parts, ok := contentMap["parts"].([]interface{}); ok && len(parts) > 0 {
 				if partMap, ok := parts[0].(map[string]interface{}); ok {
@@ -59,10 +59,10 @@ func (t tuiRequest) Description() string {
 			}
 		}
 	}
-	return t.Timestamp.Format("15:04:05") + " | " + desc
+	return t.Request.Timestamp.Format("15:04:05") + " | " + desc
 }
 
-func (t tuiRequest) FilterValue() string { return t.ID + " " + t.Model }
+func (t tuiRequest) FilterValue() string { return t.Request.ID + " " + t.Request.Model }
 
 type model struct {
 	reqCh       <-chan *store.Request
@@ -131,7 +131,6 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
-	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -223,8 +222,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.textarea.SetValue(fixture.TemplateText())
 				}
 			}
-			m.list, cmd = m.list.Update(msg)
-			cmds = append(cmds, cmd)
+			newList, listCmd := m.list.Update(msg)
+			m.list = newList
+			cmds = append(cmds, listCmd)
 
 			if len(m.requests) > 0 {
 				idx := m.list.Index()
@@ -236,8 +236,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case stateDetail:
-			m.viewport, cmd = m.viewport.Update(msg)
-			cmds = append(cmds, cmd)
+			newViewport, vpCmd := m.viewport.Update(msg)
+			m.viewport = newViewport
+			cmds = append(cmds, vpCmd)
 
 		case stateComposer:
 			switch msg.String() {
@@ -283,8 +284,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.notification = "--fixtures dir not set"
 				}
 			default:
-				m.textarea, cmd = m.textarea.Update(msg)
-				cmds = append(cmds, cmd)
+				newTextarea, taCmd := m.textarea.Update(msg)
+				m.textarea = newTextarea
+				cmds = append(cmds, taCmd)
 			}
 		}
 	}
