@@ -306,7 +306,7 @@ export function FixtureManager() {
                         <div className="p-6">
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Delete Fixture</h3>
                             <p className="text-slate-600 dark:text-slate-400 text-sm">
-                                Are you sure you want to delete the fixture <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded text-red-600 dark:text-red-400">{fixtureToDelete}</span>?
+                                Are you sure you want to delete the fixture <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded text-red-600 dark:text-red-400 break-all">{fixtureToDelete}</span>?
                                 This action cannot be undone.
                             </p>
                         </div>
