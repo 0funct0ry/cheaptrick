@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/chzyer/readline"
 	"google.golang.org/genai"
 )
@@ -181,7 +182,11 @@ func (r *REPL) processTurn(ctx context.Context) {
 		// If there is text, record the final text turn or partial text turn
 		for _, part := range parts {
 			if part.Text != "" {
-				fmt.Printf("%s\n", part.Text)
+				out, err := glamour.Render(part.Text, "dark")
+				if err != nil {
+					out = part.Text + "\n"
+				}
+				fmt.Print(out)
 				r.currentTrace.AddMockTextTurn(part.Text)
 			}
 			if part.FunctionCall != nil {

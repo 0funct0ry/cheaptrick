@@ -9,8 +9,27 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/chzyer/readline"
 	"google.golang.org/genai"
+)
+
+var (
+	callBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("208")). // Orange
+			Padding(0, 1).
+			MarginTop(1).
+			MarginBottom(1)
+
+	callTitleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("226")). // Yellow
+			Bold(true).
+			Underline(true)
+
+	callArgValueStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86")) // Cyan
+
+	alertStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 )
 
 // handleFunctionCalls processes a batch of function calls and returns the corresponding function responses.
@@ -18,12 +37,9 @@ func (r *REPL) handleFunctionCalls(ctx context.Context, calls []*genai.FunctionC
 	var responses []*genai.Part
 
 	for _, call := range calls {
-		// Log or display the calling
-		fmt.Printf("\n\033[1;33m\u250c\u2500 FUNCTION CALL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u001b[0m\n")
-		fmt.Printf("\033[1;33m\u2502  %s\033[0m\n", call.Name)
-		fmt.Printf("\033[1;33m\u2502\033[0m\n")
-
-		fmt.Printf("\033[1;33m\u2502\033[0m  Arguments:\n")
+		var content strings.Builder
+		content.WriteString(callTitleStyle.Render("FUNCTION CALL: "+call.Name) + "\n\n")
+		content.WriteString("Arguments:\n")
 
 		var args map[string]any
 		if call.Args != nil {
@@ -33,27 +49,27 @@ func (r *REPL) handleFunctionCalls(ctx context.Context, calls []*genai.FunctionC
 		}
 
 		if len(args) == 0 {
-			fmt.Printf("\033[1;33m\u2502\033[0m  {}\n")
+			content.WriteString("  {}\n")
 		} else {
-			b, _ := json.MarshalIndent(args, "   ", "  ")
+			b, _ := json.MarshalIndent(args, "", "  ")
 			lines := strings.Split(string(b), "\n")
 			for _, l := range lines {
-				fmt.Printf("\033[1;33m\u2502\033[0m \033[36m%s\033[0m\n", l)
+				content.WriteString("  " + callArgValueStyle.Render(l) + "\n")
 			}
 		}
 
+		fmt.Println(callBoxStyle.Render(content.String()))
+
 		// Handle active timeouts
 		if waitSecs, ok := r.injectedTimes[call.Name]; ok && waitSecs > 0 {
-			fmt.Printf("\033[1;33m\u2502\033[0m\n")
-			fmt.Printf("\033[1;33m\u2502\033[0m  \033[1;31m[INJECTED TIMEOUT]\033[0m Delaying %ds...\n", waitSecs)
+			fmt.Printf("  %s Delaying %ds...\n", alertStyle.Render("[INJECTED TIMEOUT]"), waitSecs)
 			time.Sleep(time.Duration(waitSecs) * time.Second)
 			delete(r.injectedTimes, call.Name) // One-shot timeout
 		}
 
 		// Handle active failures
 		if failActivated, ok := r.injectedFails[call.Name]; ok && failActivated {
-			fmt.Printf("\033[1;33m\u2502\033[0m\n")
-			fmt.Printf("\033[1;33m\u2502\033[0m  \033[1;31m[INJECTED FAILURE]\033[0m Returning generic error.\n")
+			fmt.Printf("  %s Returning generic error.\n", alertStyle.Render("[INJECTED FAILURE]"))
 
 			respMap := map[string]any{"error": fmt.Sprintf("Service unavailable: %s failed (injected by /fail)", call.Name)}
 
@@ -63,7 +79,6 @@ func (r *REPL) handleFunctionCalls(ctx context.Context, calls []*genai.FunctionC
 			r.currentTrace.AddMockFuncTurn(call.Name, args)
 			r.currentTrace.AddToolTurn(respMap, "[injected: error]")
 			responses = append(responses, genai.NewPartFromFunctionResponse(call.Name, respMap))
-			fmt.Printf("\033[1;33m\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u001b[0m\n")
 			continue
 		}
 
@@ -73,21 +88,14 @@ func (r *REPL) handleFunctionCalls(ctx context.Context, calls []*genai.FunctionC
 		respMap, loadedFilePath := r.resolveCannedResponse(call.Name, args, callCount)
 
 		if loadedFilePath != "" {
-			fmt.Printf("\033[1;33m\u2502\033[0m\n")
-			fmt.Printf("\033[1;33m\u2502\033[0m  Canned response: \033[2m%s\033[0m\n", loadedFilePath)
+			fmt.Printf("  Canned response: \033[2m%s\033[0m\n", loadedFilePath)
 
 			// Pretty print canned response
 			b, _ := json.MarshalIndent(respMap, "   ", "  ")
-			fmt.Printf("\033[1;33m\u2502\033[0m  \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n")
-			lines := strings.Split(string(b), "\n")
-			for _, l := range lines {
-				fmt.Printf("\033[1;33m\u2502\033[0m  \u2502 %s\n", l)
-			}
-			fmt.Printf("\033[1;33m\u2502\033[0m  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n")
-			fmt.Printf("\033[1;33m\u2502\033[0m\n")
+			fmt.Println(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(string(b)) + "\n")
 
 			if r.cfg.AutoMode {
-				fmt.Printf("\033[1;33m\u2502\033[0m  [Auto-accepted]\n")
+				fmt.Printf("  [Auto-accepted]\n")
 			} else {
 				// Step mode interactive prompt
 				respMap = r.promptCannedResponseAction(call.Name, respMap, loadedFilePath)
@@ -98,9 +106,8 @@ func (r *REPL) handleFunctionCalls(ctx context.Context, calls []*genai.FunctionC
 			}
 		} else {
 			if r.cfg.ToolResDir != "" {
-				fmt.Printf("\033[1;33m\u2502\033[0m\n")
-				fmt.Printf("\033[1;33m\u2502\033[0m  \033[1;31m⚠ WARNING: No canned response found for \"%s\"\033[0m\n", call.Name)
-				fmt.Printf("\033[1;33m\u2502\033[0m  Searched in: %s\n", r.cfg.ToolResDir)
+				fmt.Printf("\n  %s No canned response found for \"%s\"\n", alertStyle.Render("⚠ WARNING:"), call.Name)
+				fmt.Printf("  Searched in: %s\n", r.cfg.ToolResDir)
 			}
 			respMap = r.promptManualToolResponse(call.Name)
 			if respMap == nil {
@@ -117,7 +124,6 @@ func (r *REPL) handleFunctionCalls(ctx context.Context, calls []*genai.FunctionC
 		r.currentTrace.AddToolTurn(respMap, tag)
 
 		responses = append(responses, genai.NewPartFromFunctionResponse(call.Name, respMap))
-		fmt.Printf("\033[1;33m\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u001b[0m\n")
 	}
 
 	return responses
@@ -216,8 +222,8 @@ func (r *REPL) resolveCannedResponse(name string, args map[string]any, count int
 }
 
 func (r *REPL) promptManualToolResponse(name string) map[string]any {
-	fmt.Printf("\033[1;33m\u2502\033[0m\n")
-	fmt.Printf("\033[1;33m\u2502\033[0m  Type the tool's return value as JSON (brace-balanced):\n")
+	fmt.Println()
+	fmt.Println("  Type the tool's return value as JSON (brace-balanced):")
 
 	var input strings.Builder
 	braceCount := 0
@@ -293,8 +299,8 @@ func (r *REPL) promptManualToolResponse(name string) map[string]any {
 
 func (r *REPL) promptCannedResponseAction(name string, defaultMap map[string]any, filePath string) map[string]any {
 	for {
-		fmt.Printf("\033[1;33m\u2502\033[0m  [Enter] Accept  [e] Edit  [s] Accept & Save\n")
-		fmt.Printf("\033[1;33m\u2502\033[0m  [t] Type new    [x] Abort chain\n")
+		fmt.Printf("  [Enter] Accept  [e] Edit  [s] Accept & Save\n")
+		fmt.Printf("  [t] Type new    [x] Abort chain\n")
 
 		r.rl.SetPrompt("\033[36mAction>\033[0m ")
 		line, err := r.rl.Readline()
@@ -322,7 +328,7 @@ func (r *REPL) promptCannedResponseAction(name string, defaultMap map[string]any
 			// Let's just prompt them to type a new JSON for now.
 
 			// A simpler way: we just read a single line or multi-line JSON replacing the old
-			fmt.Printf("\033[1;33m\u2502\033[0m  Type new JSON (multi-line supported):\n")
+			fmt.Printf("\n  Type new JSON (multi-line supported):\n")
 			r.rl.SetPrompt("Tool Response> ")
 			newMap := r.promptManualToolResponse(name)
 			if newMap == nil {
@@ -333,7 +339,7 @@ func (r *REPL) promptCannedResponseAction(name string, defaultMap map[string]any
 			if line == "s" {
 				newB, _ := json.MarshalIndent(newMap, "", "  ")
 				if err := os.WriteFile(filePath, newB, 0644); err == nil {
-					fmt.Printf("\033[1;33m\u2502\033[0m  Saved to %s\n", filePath)
+					fmt.Printf("  Saved to %s\n", filePath)
 				} else {
 					fmt.Printf("\033[31mFailed to save: %v\033[0m\n", err)
 				}
