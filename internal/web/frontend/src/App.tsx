@@ -12,7 +12,15 @@ import { FixtureManager } from './components/FixtureManager';
 export default function App() {
   const { requests, loading, handleWsEvent } = useRequests();
   const { status: wsStatus } = useWebSocket(handleWsEvent);
-  const [activeTab, setActiveTab] = useState<'requests' | 'fixtures'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'fixtures'>(() => {
+    const saved = localStorage.getItem('activeTab');
+    return (saved === 'requests' || saved === 'fixtures') ? saved : 'requests';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailCache, setDetailCache] = useState<Record<string, RequestDetailType>>({});
 
