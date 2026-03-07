@@ -1,11 +1,9 @@
-PR*.md
 *.jsonl
 fixtures/
 bin/
 # Added by goreleaser init:
 dist/
-W*I.md
 examples/
-SHELLP.md
 mock_tools/
 .idea
+scratch/
