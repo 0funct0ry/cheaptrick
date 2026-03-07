@@ -11,7 +11,8 @@ func ComputeRequestHash(parsed map[string]interface{}) string {
 	canonical := []byte("")
 
 	if contents, ok := parsed["contents"].([]interface{}); ok && len(contents) > 0 {
-		if firstContent, ok := contents[0].(map[string]interface{}); ok {
+		idx := len(contents) - 1
+		if firstContent, ok := contents[idx].(map[string]interface{}); ok {
 			if parts, ok := firstContent["parts"].([]interface{}); ok && len(parts) > 0 {
 				if firstPart, ok := parts[0].(map[string]interface{}); ok {
 					if text, ok := firstPart["text"].(string); ok {
