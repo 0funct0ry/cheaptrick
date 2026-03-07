@@ -12,7 +12,7 @@ Cheaptrick intercepts Google Gemini API requests, lets you craft responses
 by hand, and replays them from fixtures — so you can develop and debug
 LLM-powered agents locally without spending tokens.
 
-[Getting Started](#getting-started) · [Usage](#usage) · [Fixtures](#fixtures) · [Tool-Call Debugging](#tool-call-debugging-with-the-shell) · [SDK Examples](#connecting-your-app) · [Keybindings](#keybindings) · [Contributing](#contributing)
+[Getting Started](#getting-started) · [Usage](#usage) · [Fixtures](#fixtures) · [Tool-Call Debugging](#tool-call-debugging-with-the-shell) · [SDK Examples](#connecting-your-app) · [Contributing](#contributing)
 
 </div>
 
@@ -801,42 +801,24 @@ GEMINI_API_KEY=your-real-key cargo run             # production
 
 ---
 
-## Keybindings
-
-These apply to the Web UI when the browser window is focused.
-
-| Key | Action |
-|-----|--------|
-| `Tab` | Cycle focus between panels |
-| `j` / `k` or `↑` / `↓` | Navigate list, scroll detail view |
-| `Enter` | Open response composer for selected request |
-| `F1` | Insert text response template |
-| `F2` | Insert function call template |
-| `F3` | Insert `429 Too Many Requests` error |
-| `F4` | Insert `500 Internal Server Error` |
-| `Ctrl+S` | Send composed response |
-| `Ctrl+F` | Save response as fixture for auto-replay |
-| `Esc` | Exit composer / cancel |
-
----
 
 ## Architecture
 
 ```
-┌─────────────┐         ┌──────────────────────────────────────────┐
-│  Your App   │  HTTP   │              Cheaptrick                  │
-│  (any SDK)  │────────▶│                                          │
-│             │         │  ┌────────┐  observer     ┌───────────┐  │
-│             │◀────────│  │ Mock   │──────────────▶│  Web UI   │  │
-│             │         │  │ Server │◀──────────────│  (:3000)  │  │
-└─────────────┘         │  │ (:8080)│  response ch  └───────────┘  │
-                        │  └────────┘       ▲ WebSocket             │
-                        │       │           │                      │
-                        │       ▼           │                      │
-                        │  ┌────────┐  ┌────┴────┐                 │
-                        │  │Fixtures│  │ Browser │                 │
-                        │  └────────┘  └─────────┘                 │
-                        └──────────────────────────────────────────┘
+┌─────────────┐         ┌─────────────────────────────────────────────┐
+│  Your App   │  HTTP   │              Cheaptrick                     │
+│  (any SDK)  │────────▶│                                             │
+│             │         │  ┌────────┐  observer     ┌───────────┐     │
+│             │◀────────│  │ Mock   │──────────────▶│  Web UI   │     │
+│             │         │  │ Server │◀──────────────│  (:3000)  │     │
+└─────────────┘         │  │ (:8080)│  response ch  └───────────┘     │
+                        │  └────────┘                   ▲ WebSocket   │
+                        │       │                       │             │
+                        │       ▼                       │             │
+                        │  ┌────────┐              ┌────┴────┐        │
+                        │  │Fixtures│              │ Browser │        │
+                        │  └────────┘              └─────────┘        │
+                        └─────────────────────────────────────────────┘
 ```
 
 The `cheaptrick web` command starts two HTTP servers in goroutines: the
