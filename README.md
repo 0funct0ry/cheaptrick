@@ -128,15 +128,15 @@ command returns with your response.
 Click **Save Fixture** to save the response for auto-replay. Subsequent
 identical requests are answered instantly without human input.
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--port` | `8080` | Gemini mock server port |
-| `--web-port` | `3000` | Web UI server port |
-| `--fixtures` | `./fixtures` | Fixture directory path |
-| `--log` | `mock_log.jsonl` | JSONL log file path |
-| `--tls-cert` | | TLS certificate file |
-| `--tls-key` | | TLS key file |
-| `--open` | `true` | Auto-open browser on startup |
+| Flag         | Default          | Description                  |
+|--------------|------------------|------------------------------|
+| `--port`     | `8080`           | Gemini mock server port      |
+| `--web-port` | `3000`           | Web UI server port           |
+| `--fixtures` | `./fixtures`     | Fixture directory path       |
+| `--log`      | `mock_log.jsonl` | JSONL log file path          |
+| `--tls-cert` |                  | TLS certificate file         |
+| `--tls-key`  |                  | TLS key file                 |
+| `--open`     | `true`           | Auto-open browser on startup |
 
 ### `shell` — Interactive REPL
 
@@ -150,15 +150,15 @@ using the official genai client. It maintains conversation history across
 turns, detects function-call responses, and supports canned tool
 responses for automated tool-call loop testing.
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-H, --host` | `localhost` | Mock server host |
-| `-p, --port` | `8080` | Mock server port |
-| `-m, --model` | `gemini-2.0-flash` | Model name in requests |
-| `--tool-responses` | | Directory for canned tool response files |
-| `--auto` | `false` | Auto-send canned responses without prompting |
-| `--max-turns` | `20` | Maximum tool-call loop iterations |
-| `--history-file` | OS temp dir | Readline history path |
+| Flag               | Default            | Description                                  |
+|--------------------|--------------------|----------------------------------------------|
+| `-H, --host`       | `localhost`        | Mock server host                             |
+| `-p, --port`       | `8080`             | Mock server port                             |
+| `-m, --model`      | `gemini-2.0-flash` | Model name in requests                       |
+| `--tool-responses` |                    | Directory for canned tool response files     |
+| `--auto`           | `false`            | Auto-send canned responses without prompting |
+| `--max-turns`      | `20`               | Maximum tool-call loop iterations            |
+| `--history-file`   | OS temp dir        | Readline history path                        |
 
 `GEMINI_API_KEY` can be set but is not validated by the mock server.
 
@@ -174,8 +174,8 @@ covering a range of common tool-calling patterns. The generated files
 are ready to use with `cheaptrick shell --tool-responses`. See
 [Sample Tool Responses](#sample-tool-responses) for the full list.
 
-| Flag | Default | Description |
-|------|---------|-------------|
+| Flag               | Default        | Description                          |
+|--------------------|----------------|--------------------------------------|
 | `-o, --output-dir` | `./mock_tools` | Output directory for generated files |
 
 ### `fixtures` — Generate starter fixtures
