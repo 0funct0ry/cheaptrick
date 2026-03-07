@@ -9,7 +9,7 @@ type TraceTurn struct {
 	Index   int
 	Role    string // user, mock, tool
 	Content string
-	Tag     string // e.g. [via TUI], [canned: paris.json]
+	Tag     string // e.g. [via WEB], [canned: paris.json]
 }
 
 type TraceInfo struct {
@@ -37,7 +37,7 @@ func (t *TraceInfo) AddMockTextTurn(text string) {
 		Index:   len(t.Turns) + 1,
 		Role:    "mock",
 		Content: truncateString(text, 60),
-		Tag:     "[via TUI]",
+		Tag:     "[via WEB]",
 	})
 }
 
@@ -54,7 +54,7 @@ func (t *TraceInfo) AddMockFuncTurn(callName string, args map[string]any) {
 		Index:   len(t.Turns) + 1,
 		Role:    "mock",
 		Content: fmt.Sprintf("ƒ %s(%s)", callName, truncateString(argsStr, 30)),
-		Tag:     "[via TUI]",
+		Tag:     "[via WEB]",
 	})
 }
 

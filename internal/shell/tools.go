@@ -117,7 +117,7 @@ func (r *REPL) handleFunctionCalls(ctx context.Context, calls []*genai.FunctionC
 		}
 
 		r.currentTrace.AddMockFuncTurn(call.Name, args)
-		tag := "[via TUI]"
+		tag := "[via WEB]"
 		if loadedFilePath != "manual input" {
 			tag = fmt.Sprintf("[canned: %s]", filepath.Base(loadedFilePath))
 		}
