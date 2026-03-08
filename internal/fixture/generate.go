@@ -3,27 +3,14 @@ package fixture
 import (
 	"bytes"
 	"cheaptrick/internal/fixture/data"
+	"cheaptrick/internal/fixture/manifest"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"text/template"
 )
-
-//var PredefinedToolCallPrompts = []string{
-//	"Get the current weather in New York.",
-//	"Calculate 25 * 48.",
-//	"Set an alarm for 7 AM tomorrow.",
-//	"Find cheap flights to Tokyo for next week.",
-//	"What is the stock price of Apple?",
-//	"Translate this webpage to French.",
-//	"Book a table for two at a nearby Italian restaurant.",
-//	"Play some relaxing jazz music.",
-//	"Turn off the living room lights.",
-//	"Convert 100 US dollars to Euros.",
-//}
 
 func GenerateFromPrompts(outputDir string, promptType string, count int) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
@@ -75,19 +62,7 @@ func textPromptResponseTemplate(response string) string {
 }
 
 func generateTextPrompts(outputDir string, count int) {
-	manifestPath := filepath.Join(outputDir, "MANIFEST.md")
-	f, err := os.Create(manifestPath)
-	if err != nil {
-		log.Fatalf("Failed to create manifest file: %v", err)
-	}
-	defer f.Close()
-
-	_, _ = f.WriteString("# Cheaptrick Fixtures Manifest\n\n")
-	_, _ = f.WriteString("This file maps predefined user prompts to their corresponding auto-reply fixture files. Send the exact payload structure to get the fixture matched automatically.\n\n")
-
-	_, _ = f.WriteString("## Text Responses\n\n")
-	_, _ = f.WriteString("| Prompt | Fixture File |\n")
-	_, _ = f.WriteString("|---|---|\n")
+	mf := manifest.NewTextManifest()
 
 	generatedTextPrompts := data.GenerateTextPromptDataset(count)
 	for prompt, response := range generatedTextPrompts {
@@ -97,26 +72,20 @@ func generateTextPrompts(outputDir string, count int) {
 		if err := SaveFixture(outputDir, hashStr, textPromptResponseTemplate(response)); err != nil {
 			log.Printf("Failed to save text fixture %s: %v", hashStr, err)
 		} else {
-			_, _ = f.WriteString(fmt.Sprintf("| `%s` | [`%s`](%s.json) |\n", prompt, hashStr, hashStr))
+			mf.Add(prompt, hashStr)
 		}
+	}
+	if err := mf.SaveMarkdown(outputDir); err != nil {
+		log.Fatalf("Failed to save markdown manifest: %v", err)
+	}
+	if err := mf.SaveJSON(outputDir); err != nil {
+		log.Fatalf("Failed to save JSON manifest: %v", err)
 	}
 
 }
 
 func generateToolCallPrompts(outputDir string, count int) {
-	manifestPath := filepath.Join(outputDir, "MANIFEST.md")
-	f, err := os.Create(manifestPath)
-	if err != nil {
-		log.Fatalf("Failed to create manifest file: %v", err)
-	}
-	defer f.Close()
-
-	_, _ = f.WriteString("# Cheaptrick Fixtures Manifest\n\n")
-	_, _ = f.WriteString("This file maps predefined user prompts to their corresponding auto-reply fixture files. Send the exact payload structure to get the fixture matched automatically.\n\n")
-
-	_, _ = f.WriteString("\n## Tool Call Responses\n\n")
-	_, _ = f.WriteString("| Prompt | Fixture File |\n")
-	_, _ = f.WriteString("|---|---|\n")
+	mf := manifest.NewToolCallManifest()
 
 	generatedToolCallPrompts := data.GenerateToolCallDataset(count)
 	for prompt, response := range generatedToolCallPrompts {
@@ -126,7 +95,14 @@ func generateToolCallPrompts(outputDir string, count int) {
 		if err := SaveFixture(outputDir, hashStr, response); err != nil {
 			log.Printf("Failed to save tool call fixture %s: %v", hashStr, err)
 		} else {
-			_, _ = f.WriteString(fmt.Sprintf("| `%s` | `%s.json` |\n", prompt, hashStr))
+			mf.Add(prompt, hashStr)
 		}
+	}
+
+	if err := mf.SaveMarkdown(outputDir); err != nil {
+		log.Fatalf("Failed to save markdown manifest: %v", err)
+	}
+	if err := mf.SaveJSON(outputDir); err != nil {
+		log.Fatalf("Failed to save JSON manifest: %v", err)
 	}
 }
