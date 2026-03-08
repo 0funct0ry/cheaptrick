@@ -621,7 +621,7 @@ shows the resolved canned response for review:
 │  Canned: mock_tools/get_weather/paris.json       │
 │  {"temp": 18, "condition": "cloudy"}             │
 │                                                  │
-│  [Enter] Accept  [e] Edit  [s] Accept & Save    │
+│  [Enter] Accept  [e] Edit  [s] Accept & Save     │
 │  [t] Type new    [x] Abort chain                 │
 └──────────────────────────────────────────────────┘
 ```
@@ -639,7 +639,7 @@ with a warning listing every path it checked:
 │    "language": "en"                              │
 │  }                                               │
 │                                                  │
-│  ⚠ No canned response found.                    │
+│  ⚠ No canned response found.                     │
 │  Checked:                                        │
 │    ✗ mock_tools/analyze_sentiment/_match.json    │
 │    ✗ mock_tools/analyze_sentiment.1.json         │
@@ -704,21 +704,21 @@ These exported sequences provide a complete record of a multi-turn conversation 
 
 ### Shell commands
 
-| Command | Description |
-|---------|-------------|
-| `/clear` | Reset conversation history and call counters |
-| `/history` | Print the full conversation as formatted turns |
-| `/trace` | Reprint the trace of the last completed chain |
-| `/auto` | Switch to auto mode |
-| `/step` | Switch to step mode |
-| `/tools` | List canned tool response files found in `--tool-responses` dir |
-| `/fail <fn>` | Inject an error for the next call to `<fn>` |
-| `/fail <fn> persist` | Inject errors for all calls to `<fn>` |
-| `/unfail <fn>` | Remove persistent failure injection |
-| `/timeout <fn> <sec>` | Delay the next call to `<fn>` by N seconds |
-| `/export <name>` | Export conversation as a numbered fixture sequence |
-| `/help` | List all commands |
-| `/quit` | Exit the shell |
+| Command               | Description                                                     |
+|-----------------------|-----------------------------------------------------------------|
+| `/clear`              | Reset conversation history and call counters                    |
+| `/history`            | Print the full conversation as formatted turns                  |
+| `/trace`              | Reprint the trace of the last completed chain                   |
+| `/auto`               | Switch to auto mode                                             |
+| `/step`               | Switch to step mode                                             |
+| `/tools`              | List canned tool response files found in `--tool-responses` dir |
+| `/fail <fn>`          | Inject an error for the next call to `<fn>`                     |
+| `/fail <fn> persist`  | Inject errors for all calls to `<fn>`                           |
+| `/unfail <fn>`        | Remove persistent failure injection                             |
+| `/timeout <fn> <sec>` | Delay the next call to `<fn>` by N seconds                      |
+| `/export <name>`      | Export conversation as a numbered fixture sequence              |
+| `/help`               | List all commands                                               |
+| `/quit`               | Exit the shell                                                  |
 
 ---
 
