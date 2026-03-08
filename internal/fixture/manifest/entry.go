@@ -26,7 +26,7 @@ type FixtureType string
 
 const (
 	Text     FixtureType = "text"
-	ToolCall             = "tool-call"
+	ToolCall FixtureType = "tool-call"
 )
 
 type Entry struct {
